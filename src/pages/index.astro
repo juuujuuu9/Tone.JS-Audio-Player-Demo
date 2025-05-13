@@ -196,6 +196,7 @@
 				cursor: pointer;
 				transition: all 0.3s ease;
 				-webkit-tap-highlight-color: transparent;
+				touch-action: pan-y pinch-zoom;
 			}
 			.upload-area:hover {
 				border-color: var(--primary);
@@ -435,19 +436,32 @@
 					}
 				}
 
-				// Initialize audio on first user interaction
-				uploadArea.addEventListener('click', async () => {
-					await initializeAudio();
-					fileInput.click();
-				});
+				// Handle mobile touch events
+				let touchStartTime = 0;
+				const TOUCH_THRESHOLD = 200; // milliseconds
 
-				uploadArea.addEventListener('touchstart', async () => {
-					await initializeAudio();
+				uploadArea.addEventListener('touchstart', (e) => {
+					touchStartTime = Date.now();
 					uploadArea.style.borderColor = 'var(--primary)';
+				}, { passive: true });
+
+				uploadArea.addEventListener('touchend', async (e) => {
+					const touchDuration = Date.now() - touchStartTime;
+					uploadArea.style.borderColor = '#ccc';
+					
+					// Only trigger if it's a short tap (not a scroll)
+					if (touchDuration < TOUCH_THRESHOLD) {
+						e.preventDefault();
+						fileInput.click();
+					}
 				});
 
-				uploadArea.addEventListener('touchend', () => {
-					uploadArea.style.borderColor = '#ccc';
+				// Handle click for desktop
+				uploadArea.addEventListener('click', (e) => {
+					// Check if the event is a pointer event
+					if (e instanceof PointerEvent && e.pointerType !== 'touch') {
+						fileInput.click();
+					}
 				});
 
 				// Handle drag and drop
@@ -463,40 +477,46 @@
 				uploadArea.addEventListener('drop', async (e: DragEvent) => {
 					e.preventDefault();
 					uploadArea.style.borderColor = '#ccc';
-					await initializeAudio();
 					const file = e.dataTransfer?.files[0];
 					if (file && file.type.startsWith('audio/')) {
+						await initializeAudio();
 						handleAudioFile(file);
 					}
 				});
 
 				fileInput.addEventListener('change', async (e: Event) => {
-					await initializeAudio();
 					const target = e.target as HTMLInputElement;
 					const file = target.files?.[0];
 					if (file) {
+						await initializeAudio();
 						handleAudioFile(file);
 					}
 				});
 
 				async function handleAudioFile(file: File) {
-					if (!isInitialized) {
-						await initializeAudio();
-					}
-					
-					const url = URL.createObjectURL(file);
-					if (player) {
-						player.dispose();
-					}
-					
-					// Create new player
-					player = new Tone.Player(url);
-					player.toDestination();
-					
-					// Update UI to show file is loaded
-					const uploadText = document.getElementById('uploadText');
-					if (uploadText) {
-						uploadText.textContent = `Loaded: ${file.name}`;
+					try {
+						const url = URL.createObjectURL(file);
+						if (player) {
+							player.dispose();
+						}
+						
+						// Create new player
+						player = new Tone.Player({
+							url: url,
+							onload: () => {
+								console.log('Audio file loaded successfully');
+								// Update UI to show file is loaded
+								const uploadText = document.getElementById('uploadText');
+								if (uploadText) {
+									uploadText.textContent = `Loaded: ${file.name}`;
+								}
+							},
+							onerror: (error) => {
+								console.error('Error loading audio file:', error);
+							}
+						}).toDestination();
+					} catch (error) {
+						console.error('Error handling audio file:', error);
 					}
 				}
 
