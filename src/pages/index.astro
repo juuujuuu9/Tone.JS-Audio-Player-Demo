@@ -196,7 +196,6 @@
 				cursor: pointer;
 				transition: all 0.3s ease;
 				-webkit-tap-highlight-color: transparent;
-				touch-action: manipulation;
 			}
 			.upload-area:hover {
 				border-color: var(--primary);
@@ -411,47 +410,46 @@
 			if (!uploadArea || !fileInput) {
 				console.error('Required elements not found');
 			} else {
-				// Handle click/tap events
-				uploadArea.addEventListener('click', () => {
+				// Simple click handler that works on both desktop and mobile
+				uploadArea.onclick = () => {
 					fileInput.click();
-				});
+				};
 
-				// Handle touch events for mobile
-				uploadArea.addEventListener('touchstart', (e) => {
+				// Visual feedback for touch
+				uploadArea.ontouchstart = () => {
 					uploadArea.style.borderColor = 'var(--primary)';
-				});
+				};
 
-				uploadArea.addEventListener('touchend', () => {
+				uploadArea.ontouchend = () => {
 					uploadArea.style.borderColor = '#ccc';
-					fileInput.click();
-				});
+				};
 
-				// Handle drag and drop events
-				uploadArea.addEventListener('dragover', (e: DragEvent) => {
+				// Handle drag and drop
+				uploadArea.ondragover = (e: DragEvent) => {
 					e.preventDefault();
 					uploadArea.style.borderColor = 'var(--primary)';
-				});
+				};
 
-				uploadArea.addEventListener('dragleave', () => {
+				uploadArea.ondragleave = () => {
 					uploadArea.style.borderColor = '#ccc';
-				});
+				};
 
-				uploadArea.addEventListener('drop', (e: DragEvent) => {
+				uploadArea.ondrop = (e: DragEvent) => {
 					e.preventDefault();
 					uploadArea.style.borderColor = '#ccc';
 					const file = e.dataTransfer?.files[0];
 					if (file && file.type.startsWith('audio/')) {
 						handleAudioFile(file);
 					}
-				});
+				};
 
-				fileInput.addEventListener('change', (e: Event) => {
+				fileInput.onchange = (e: Event) => {
 					const target = e.target as HTMLInputElement;
 					const file = target.files?.[0];
 					if (file) {
 						handleAudioFile(file);
 					}
-				});
+				};
 			}
 
 			async function handleAudioFile(file: File) {
