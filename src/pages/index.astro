@@ -488,13 +488,17 @@
 					const target = e.target as HTMLInputElement;
 					const file = target.files?.[0];
 					if (file) {
+						console.log('File selected:', file.name, file.type);
 						await initializeAudio();
-						handleAudioFile(file);
+						await handleAudioFile(file);
+					} else {
+						console.log('No file selected');
 					}
 				});
 
 				async function handleAudioFile(file: File) {
 					try {
+						console.log('Handling audio file:', file.name, file.type);
 						const url = URL.createObjectURL(file);
 						if (player) {
 							player.dispose();
@@ -510,13 +514,31 @@
 								if (uploadText) {
 									uploadText.textContent = `Loaded: ${file.name}`;
 								}
+								// Enable play button after successful load
+								const playBtn = document.getElementById('playBtn');
+								if (playBtn) {
+									playBtn.classList.add('active');
+								}
 							},
-							onerror: (error) => {
+							onerror: (error: Error) => {
 								console.error('Error loading audio file:', error);
+								const uploadText = document.getElementById('uploadText');
+								if (uploadText) {
+									uploadText.textContent = 'Error loading file. Please try again.';
+								}
 							}
 						}).toDestination();
+
+						// Ensure Tone.js is started
+						if (Tone.context.state !== 'running') {
+							await Tone.start();
+						}
 					} catch (error) {
 						console.error('Error handling audio file:', error);
+						const uploadText = document.getElementById('uploadText');
+						if (uploadText) {
+							uploadText.textContent = 'Error processing file. Please try again.';
+						}
 					}
 				}
 
