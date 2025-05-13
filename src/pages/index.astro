@@ -195,6 +195,8 @@
 				background: var(--slider-bg);
 				cursor: pointer;
 				transition: all 0.3s ease;
+				-webkit-tap-highlight-color: transparent;
+				touch-action: manipulation;
 			}
 			.upload-area:hover {
 				border-color: var(--primary);
@@ -409,14 +411,31 @@
 			if (!uploadArea || !fileInput) {
 				console.error('Required elements not found');
 			} else {
-				uploadArea.addEventListener('click', () => fileInput.click());
+				// Handle click/tap events
+				uploadArea.addEventListener('click', () => {
+					fileInput.click();
+				});
+
+				// Handle touch events for mobile
+				uploadArea.addEventListener('touchstart', (e) => {
+					uploadArea.style.borderColor = 'var(--primary)';
+				});
+
+				uploadArea.addEventListener('touchend', () => {
+					uploadArea.style.borderColor = '#ccc';
+					fileInput.click();
+				});
+
+				// Handle drag and drop events
 				uploadArea.addEventListener('dragover', (e: DragEvent) => {
 					e.preventDefault();
 					uploadArea.style.borderColor = 'var(--primary)';
 				});
+
 				uploadArea.addEventListener('dragleave', () => {
 					uploadArea.style.borderColor = '#ccc';
 				});
+
 				uploadArea.addEventListener('drop', (e: DragEvent) => {
 					e.preventDefault();
 					uploadArea.style.borderColor = '#ccc';
