@@ -1,0 +1,636 @@
+---
+
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<title>TF Audio Manipulator</title>
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/98mprice/PSone.css@master/PSone.css" />
+		<style>
+			:root {
+				--primary: #646cff;
+				--primary-hover: #535bf2;
+				--bg-dark: #18181b;
+				--bg-panel: #232326;
+				--text-main: #e5e5e5;
+				--text-label: #b3b3b3;
+				--slider-bg: #33343a;
+				--slider-thumb: #646cff;
+				--active-border: #ffd700;
+			}
+			body {
+				font-family: "Final Fantasy Script Collection - Final Fantasy VII", system-ui, sans-serif;
+				margin: 0;
+				padding: 2rem;
+				background: var(--bg-dark);
+				color: var(--text-main);
+			}
+			.container {
+				max-width: 600px;
+				margin: 0 auto;
+				background-image: linear-gradient(#0D2289, #06093B);
+				border: 1px solid #c6c6c6;
+				border-radius: 8px;
+				box-shadow: inset 0px 0px 2px 2px rgba(0, 0, 0, 0.3);
+			}
+			.section-title {
+				font-size: 1.5rem;
+				font-weight: 600;
+				margin-top: 2rem;
+				margin-bottom: 1rem;
+				color: var(--text-main);
+				letter-spacing: 1px;
+			}
+			.panel {
+				background: var(--bg-panel);
+				border-radius: 18px;
+				padding: 1.2rem 1.5rem;
+				margin-bottom: 1.5rem;
+				box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+			}
+			.slider-label {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				color: var(--text-label);
+				font-size: 3rem;
+				margin-bottom: 0.2rem;
+			}
+			.slider {
+				-webkit-appearance: none;
+				width: 100%;
+				height: 4px;
+				border-radius: 4px;
+				background: var(--slider-bg);
+				outline: none;
+				margin: 0.5rem 0 1.2rem 0;
+				position: relative;
+				z-index: 1;
+				cursor: pointer;
+			}
+			.slider::-webkit-slider-thumb {
+				-webkit-appearance: none;
+				appearance: none;
+				width: 20px;
+				height: 20px;
+				border-radius: 50%;
+				background: var(--slider-thumb);
+				cursor: pointer;
+				position: relative;
+				z-index: 2;
+				transition: transform 0.1s ease;
+			}
+			.slider::-moz-range-thumb {
+				width: 20px;
+				height: 20px;
+				border-radius: 50%;
+				background: var(--slider-thumb);
+				cursor: pointer;
+				border: none;
+				position: relative;
+				z-index: 2;
+				transition: transform 0.1s ease;
+			}
+			.slider:focus {
+				outline: none;
+			}
+			.slider:focus::-webkit-slider-thumb {
+				box-shadow: 0 0 0 2px rgba(100, 108, 255, 0.3);
+				transform: scale(1.1);
+			}
+			.slider:focus::-moz-range-thumb {
+				box-shadow: 0 0 0 2px rgba(100, 108, 255, 0.3);
+				transform: scale(1.1);
+			}
+			.slider:hover::-webkit-slider-thumb {
+				transform: scale(1.1);
+			}
+			.slider:hover::-moz-range-thumb {
+				transform: scale(1.1);
+			}
+			.effect-btn {
+				background: var(--bg-panel);
+				color: var(--text-main);
+				border: none;
+				padding: 0.7rem 1.2rem;
+				margin: 0.3rem 0.5rem 0.3rem 0;
+				border-radius: 12px;
+				font-size: 1rem;
+				cursor: pointer;
+				transition: all 0.2s ease;
+				box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+			}
+			.effect-btn:hover {
+				background: var(--primary-hover);
+			}
+			.effect-btn.active {
+				background: var(--primary);
+				color: white;
+				box-shadow: 0 0 0 2px var(--active-border);
+			}
+			.btn {
+				background: var(--primary);
+				color: white;
+				border: none;
+				padding: 0.7rem 1.2rem;
+				margin: 0.3rem 0.5rem 0.3rem 0;
+				border-radius: 12px;
+				font-size: 1rem;
+				cursor: pointer;
+				transition: all 0.2s ease;
+				box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+			}
+			.btn:hover {
+				background: var(--primary-hover);
+			}
+			.btn.active {
+				background: var(--primary-hover);
+				box-shadow: 0 0 0 2px var(--active-border);
+			}
+			.loop-btn {
+				background: var(--bg-panel);
+				color: var(--text-main);
+				border: none;
+				padding: 0.7rem 1.2rem;
+				margin: 0.3rem 0.5rem 0.3rem 0;
+				border-radius: 12px;
+				font-size: 1rem;
+				cursor: pointer;
+				transition: all 0.2s ease;
+				box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+			}
+			.loop-btn:hover {
+				background: var(--primary-hover);
+			}
+			.loop-btn.active {
+				background: var(--primary);
+				color: white;
+				box-shadow: 0 0 0 2px var(--active-border);
+			}
+			.modulation-group {
+				display: flex;
+				gap: 1.5rem;
+			}
+			.upload-area {
+				border: 2px dashed #ccc;
+				border-radius: 8px;
+				padding: 2rem;
+				text-align: center;
+				margin: 2rem 0;
+				background: var(--slider-bg);
+				cursor: pointer;
+				transition: all 0.3s ease;
+			}
+			.upload-area:hover {
+				border-color: var(--primary);
+			}
+			.controls {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+				gap: 1rem;
+				margin: 2rem 0;
+			}
+			.control-group {
+				background: white;
+				padding: 1rem;
+				border-radius: 8px;
+				box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+			}
+			button {
+				background: var(--primary);
+				color: white;
+				border: none;
+				padding: 0.5rem 1rem;
+				border-radius: 4px;
+				cursor: pointer;
+				transition: background 0.3s ease;
+			}
+			button:hover {
+				background: var(--primary-hover);
+			}
+			.samples {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+				gap: 1rem;
+				margin: 2rem 0;
+			}
+			.sample {
+				background: white;
+				padding: 1rem;
+				border-radius: 8px;
+				box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+				cursor: pointer;
+				transition: transform 0.2s ease;
+			}
+			.sample:hover {
+				transform: translateY(-2px);
+			}
+			.keyboard-container {
+				display: flex;
+				justify-content: center;
+				margin: 2rem 0;
+				width: 100%;
+			}
+			.keyboard {
+				position: relative;
+				height: 300px;
+				width: 100%;
+				max-width: 900px;
+			}
+			.key {
+				position: absolute;
+				top: 0;
+				border: 1px solid #222;
+				outline: none;
+				cursor: pointer;
+				z-index: 1;
+				transition: background 0.1s;
+			}
+			.key.white {
+				height: 100%;
+				width: calc(100% / 11);
+				left: calc(var(--i) * (100% / 11));
+				background: #fff;
+				z-index: 1;
+			}
+			.key.black {
+				height: 66%;
+				width: calc(100% / 18);
+				left: calc(var(--i) * (100% / 11));
+				background: #111;
+				z-index: 2;
+				margin-left: calc(-0.5 * (100% / 18));
+			}
+			.key.white:active {
+				background: #e0e0e0;
+			}
+			.key.black:active {
+				background: #444;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<h1 class="title">Th0th Ferrari Audio Player</h1>
+
+			<div class="field">
+				<div class="upload-area" id="uploadArea">
+					<p id="uploadText">Drag and drop an audio file here or click to upload</p>
+					<input type="file" id="fileInput" accept="audio/*" style="display: none" />
+				</div>
+			</div>
+
+			<div class="field">
+				<div class="section-title">PLAYBACK CONTROLS</div>
+				<div class="panel">
+					<button class="btn" id="playBtn">Play</button>
+					<button class="btn" id="pauseBtn">Pause</button>
+					<button class="btn" id="stopBtn">Stop</button>
+					<button class="btn" id="loopBtn">Loop</button>
+				</div>
+			</div>
+
+			<div class="field">
+				<div class="section-title">PLAYBACK RATE</div>
+				<div class="panel">
+					<div class="slider-label">
+						<span>Speed & Pitch</span>
+					</div>
+					<input 
+						type="range" 
+						class="slider" 
+						id="playbackRateSlider" 
+						min="0.25" 
+						max="4" 
+						value="1" 
+						step="0.01"
+					/>
+				</div>
+			</div>
+
+			<div class="field">
+				<div class="section-title">VOLUME</div>
+				<div class="panel">
+					<div class="slider-label">
+						<span>Volume (dB)</span>
+					</div>
+					<input 
+						type="range" 
+						class="slider" 
+						id="volumeSlider" 
+						min="-60" 
+						max="0" 
+						value="-20" 
+					/>
+				</div>
+			</div>
+
+			<div class="field">
+				<div class="section-title">EFFECTS</div>
+				<div class="panel">
+					<button class="btn effect-btn" id="reverbBtn">Reverb</button>
+					<div class="effect-controls" id="reverbControls" style="display: none;">
+						<div class="slider-label"><span>Decay Time</span></div>
+						<input type="range" class="slider" id="reverbDecaySlider" min="0.1" max="10" value="1.5" step="0.1" />
+					</div>
+
+					<button class="btn effect-btn" id="delayBtn">Delay</button>
+					<div class="effect-controls" id="delayControls" style="display: none;">
+						<div class="slider-label"><span>Delay Time</span></div>
+						<input type="range" class="slider" id="delayTimeSlider" min="0.1" max="2" value="0.25" step="0.1" />
+						<div class="slider-label"><span>Feedback</span></div>
+						<input type="range" class="slider" id="delayFeedbackSlider" min="0" max="0.9" value="0.5" step="0.1" />
+					</div>
+
+					<button class="btn effect-btn" id="distortionBtn">Distortion</button>
+					<div class="effect-controls" id="distortionControls" style="display: none;">
+						<div class="slider-label"><span>Distortion</span></div>
+						<input type="range" class="slider" id="distortionSlider" min="0" max="1" value="0.4" step="0.1" />
+					</div>
+
+					<button class="btn effect-btn" id="filterBtn">Filter</button>
+					<div class="effect-controls" id="filterControls" style="display: none;">
+						<div class="slider-label"><span>Frequency</span></div>
+						<input type="range" class="slider" id="filterFreqSlider" min="20" max="20000" value="1000" step="1" />
+						<div class="slider-label"><span>Q</span></div>
+						<input type="range" class="slider" id="filterQSlider" min="0.1" max="20" value="1" step="0.1" />
+					</div>
+
+					<button class="btn effect-btn" id="pitchShiftBtn">Pitch Shift</button>
+					<div class="effect-controls" id="pitchShiftControls" style="display: none;">
+						<div class="slider-label"><span>Pitch</span></div>
+						<input type="range" class="slider" id="pitchShiftSlider" min="-12" max="12" value="0" step="1" />
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<script>
+			import * as Tone from 'tone';
+
+			// Initialize Tone.js
+			await Tone.start();
+
+			let player: Tone.Player | null = null;
+			let reverb = new Tone.Reverb().toDestination();
+			let delay = new Tone.FeedbackDelay().toDestination();
+			let distortion = new Tone.Distortion().toDestination();
+			let filter = new Tone.Filter().toDestination();
+			let pitchShift = new Tone.PitchShift().toDestination();
+
+			let isReverbOn = false;
+			let isDelayOn = false;
+			let isDistortionOn = false;
+			let isFilterOn = false;
+			let isPitchShiftOn = false;
+
+			// File upload handling
+			const uploadArea = document.getElementById('uploadArea');
+			const fileInput = document.getElementById('fileInput') as HTMLInputElement;
+
+			if (!uploadArea || !fileInput) {
+				console.error('Required elements not found');
+			} else {
+				uploadArea.addEventListener('click', () => fileInput.click());
+				uploadArea.addEventListener('dragover', (e: DragEvent) => {
+					e.preventDefault();
+					uploadArea.style.borderColor = 'var(--primary)';
+				});
+				uploadArea.addEventListener('dragleave', () => {
+					uploadArea.style.borderColor = '#ccc';
+				});
+				uploadArea.addEventListener('drop', (e: DragEvent) => {
+					e.preventDefault();
+					uploadArea.style.borderColor = '#ccc';
+					const file = e.dataTransfer?.files[0];
+					if (file && file.type.startsWith('audio/')) {
+						handleAudioFile(file);
+					}
+				});
+
+				fileInput.addEventListener('change', (e: Event) => {
+					const target = e.target as HTMLInputElement;
+					const file = target.files?.[0];
+					if (file) {
+						handleAudioFile(file);
+					}
+				});
+			}
+
+			async function handleAudioFile(file: File) {
+				const url = URL.createObjectURL(file);
+				if (player) {
+					player.dispose();
+				}
+				
+				// Create new player
+				player = new Tone.Player(url);
+				player.toDestination();
+				
+				// Update UI to show file is loaded
+				const uploadText = document.getElementById('uploadText');
+				if (uploadText) {
+					uploadText.textContent = `Loaded: ${file.name}`;
+				}
+			}
+
+			// Playback controls
+			const playBtn = document.getElementById('playBtn');
+			const pauseBtn = document.getElementById('pauseBtn');
+			const stopBtn = document.getElementById('stopBtn');
+			const loopBtn = document.getElementById('loopBtn');
+			const volumeSlider = document.getElementById('volumeSlider') as HTMLInputElement;
+			const playbackRateSlider = document.getElementById('playbackRateSlider') as HTMLInputElement;
+
+			playBtn?.addEventListener('click', () => {
+				if (player) {
+					player.start();
+				}
+			});
+
+			pauseBtn?.addEventListener('click', () => {
+				if (player) {
+					player.stop();
+				}
+			});
+
+			stopBtn?.addEventListener('click', () => {
+				if (player) {
+					player.stop();
+				}
+			});
+
+			loopBtn?.addEventListener('click', () => {
+				if (player) {
+					player.loop = !player.loop;
+					loopBtn.classList.toggle('active');
+				}
+			});
+
+			// Volume control
+			volumeSlider?.addEventListener('input', (e: Event) => {
+				if (player) {
+					player.volume.value = parseFloat((e.target as HTMLInputElement).value);
+				}
+			});
+
+			// Playback rate control
+			playbackRateSlider?.addEventListener('input', (e: Event) => {
+				if (player) {
+					player.playbackRate = parseFloat((e.target as HTMLInputElement).value);
+				}
+			});
+
+			// Effects controls
+			const reverbBtn = document.getElementById('reverbBtn');
+			const reverbControls = document.getElementById('reverbControls');
+			const delayBtn = document.getElementById('delayBtn');
+			const delayControls = document.getElementById('delayControls');
+			const distortionBtn = document.getElementById('distortionBtn');
+			const distortionControls = document.getElementById('distortionControls');
+			const filterBtn = document.getElementById('filterBtn');
+			const filterControls = document.getElementById('filterControls');
+			const pitchShiftBtn = document.getElementById('pitchShiftBtn');
+			const pitchShiftControls = document.getElementById('pitchShiftControls');
+
+			reverbBtn?.addEventListener('click', () => {
+				if (player) {
+					isReverbOn = !isReverbOn;
+					if (isReverbOn) {
+						player.connect(reverb);
+						reverbBtn.classList.add('active');
+						if (reverbControls) reverbControls.style.display = 'block';
+					} else {
+						player.disconnect(reverb);
+						reverbBtn.classList.remove('active');
+						if (reverbControls) reverbControls.style.display = 'none';
+					}
+				}
+			});
+
+			delayBtn?.addEventListener('click', () => {
+				if (player) {
+					isDelayOn = !isDelayOn;
+					if (isDelayOn) {
+						player.connect(delay);
+						delayBtn.classList.add('active');
+						if (delayControls) delayControls.style.display = 'block';
+					} else {
+						player.disconnect(delay);
+						delayBtn.classList.remove('active');
+						if (delayControls) delayControls.style.display = 'none';
+					}
+				}
+			});
+
+			distortionBtn?.addEventListener('click', () => {
+				if (player) {
+					isDistortionOn = !isDistortionOn;
+					if (isDistortionOn) {
+						player.connect(distortion);
+						distortionBtn.classList.add('active');
+						if (distortionControls) distortionControls.style.display = 'block';
+					} else {
+						player.disconnect(distortion);
+						distortionBtn.classList.remove('active');
+						if (distortionControls) distortionControls.style.display = 'none';
+					}
+				}
+			});
+
+			filterBtn?.addEventListener('click', () => {
+				if (player) {
+					isFilterOn = !isFilterOn;
+					if (isFilterOn) {
+						player.connect(filter);
+						filterBtn.classList.add('active');
+						if (filterControls) filterControls.style.display = 'block';
+					} else {
+						player.disconnect(filter);
+						filterBtn.classList.remove('active');
+						if (filterControls) filterControls.style.display = 'none';
+					}
+				}
+			});
+
+			pitchShiftBtn?.addEventListener('click', () => {
+				if (player) {
+					isPitchShiftOn = !isPitchShiftOn;
+					if (isPitchShiftOn) {
+						player.connect(pitchShift);
+						pitchShiftBtn.classList.add('active');
+						if (pitchShiftControls) pitchShiftControls.style.display = 'block';
+					} else {
+						player.disconnect(pitchShift);
+						pitchShiftBtn.classList.remove('active');
+						if (pitchShiftControls) pitchShiftControls.style.display = 'none';
+					}
+				}
+			});
+
+			// Effect parameter controls
+			const reverbDecaySlider = document.getElementById('reverbDecaySlider') as HTMLInputElement;
+			const delayTimeSlider = document.getElementById('delayTimeSlider') as HTMLInputElement;
+			const delayFeedbackSlider = document.getElementById('delayFeedbackSlider') as HTMLInputElement;
+			const distortionSlider = document.getElementById('distortionSlider') as HTMLInputElement;
+			const filterFreqSlider = document.getElementById('filterFreqSlider') as HTMLInputElement;
+			const filterQSlider = document.getElementById('filterQSlider') as HTMLInputElement;
+			const pitchShiftSlider = document.getElementById('pitchShiftSlider') as HTMLInputElement;
+
+			if (reverbDecaySlider) {
+				reverbDecaySlider.addEventListener('input', (e: Event) => {
+					const target = e.target as HTMLInputElement;
+					reverb.decay = parseFloat(target.value);
+				});
+			}
+
+			if (delayTimeSlider) {
+				delayTimeSlider.addEventListener('input', (e: Event) => {
+					const target = e.target as HTMLInputElement;
+					delay.delayTime.value = parseFloat(target.value);
+				});
+			}
+
+			if (delayFeedbackSlider) {
+				delayFeedbackSlider.addEventListener('input', (e: Event) => {
+					const target = e.target as HTMLInputElement;
+					delay.feedback.value = parseFloat(target.value);
+				});
+			}
+
+			if (distortionSlider) {
+				distortionSlider.addEventListener('input', (e: Event) => {
+					const target = e.target as HTMLInputElement;
+					distortion.distortion = parseFloat(target.value);
+				});
+			}
+
+			if (filterFreqSlider) {
+				filterFreqSlider.addEventListener('input', (e: Event) => {
+					const target = e.target as HTMLInputElement;
+					filter.frequency.value = parseFloat(target.value);
+				});
+			}
+
+			if (filterQSlider) {
+				filterQSlider.addEventListener('input', (e: Event) => {
+					const target = e.target as HTMLInputElement;
+					filter.Q.value = parseFloat(target.value);
+				});
+			}
+
+			if (pitchShiftSlider) {
+				pitchShiftSlider.addEventListener('input', (e: Event) => {
+					const target = e.target as HTMLInputElement;
+					pitchShift.pitch = parseFloat(target.value);
+				});
+			}
+		</script>
+	</body>
+</html>
+
+
