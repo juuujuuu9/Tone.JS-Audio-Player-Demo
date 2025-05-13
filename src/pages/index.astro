@@ -385,281 +385,291 @@
 		</div>
 
 		<script>
-			import * as Tone from 'tone';
+			// Wait for the DOM to be fully loaded
+			document.addEventListener('DOMContentLoaded', async () => {
+				try {
+					// Import Tone.js dynamically
+					const Tone = await import('tone');
 
-			// Initialize Tone.js
-			await Tone.start();
+					// Initialize Tone.js
+					await Tone.start();
 
-			let player: Tone.Player | null = null;
-			let reverb = new Tone.Reverb().toDestination();
-			let delay = new Tone.FeedbackDelay().toDestination();
-			let distortion = new Tone.Distortion().toDestination();
-			let filter = new Tone.Filter().toDestination();
-			let pitchShift = new Tone.PitchShift().toDestination();
+					let player: Tone.Player | null = null;
+					let reverb = new Tone.Reverb().toDestination();
+					let delay = new Tone.FeedbackDelay().toDestination();
+					let distortion = new Tone.Distortion().toDestination();
+					let filter = new Tone.Filter().toDestination();
+					let pitchShift = new Tone.PitchShift().toDestination();
 
-			let isReverbOn = false;
-			let isDelayOn = false;
-			let isDistortionOn = false;
-			let isFilterOn = false;
-			let isPitchShiftOn = false;
+					let isReverbOn = false;
+					let isDelayOn = false;
+					let isDistortionOn = false;
+					let isFilterOn = false;
+					let isPitchShiftOn = false;
 
-			// File upload handling
-			const uploadArea = document.getElementById('uploadArea');
-			const fileInput = document.getElementById('fileInput') as HTMLInputElement;
+					// File upload handling
+					const uploadArea = document.getElementById('uploadArea');
+					const fileInput = document.getElementById('fileInput') as HTMLInputElement;
 
-			if (!uploadArea || !fileInput) {
-				console.error('Required elements not found');
-			} else {
-				// Simple click handler that works on both desktop and mobile
-				uploadArea.onclick = () => {
-					fileInput.click();
-				};
-
-				// Visual feedback for touch
-				uploadArea.ontouchstart = () => {
-					uploadArea.style.borderColor = 'var(--primary)';
-				};
-
-				uploadArea.ontouchend = () => {
-					uploadArea.style.borderColor = '#ccc';
-				};
-
-				// Handle drag and drop
-				uploadArea.ondragover = (e: DragEvent) => {
-					e.preventDefault();
-					uploadArea.style.borderColor = 'var(--primary)';
-				};
-
-				uploadArea.ondragleave = () => {
-					uploadArea.style.borderColor = '#ccc';
-				};
-
-				uploadArea.ondrop = (e: DragEvent) => {
-					e.preventDefault();
-					uploadArea.style.borderColor = '#ccc';
-					const file = e.dataTransfer?.files[0];
-					if (file && file.type.startsWith('audio/')) {
-						handleAudioFile(file);
+					if (!uploadArea || !fileInput) {
+						console.error('Required elements not found');
+						return;
 					}
-				};
 
-				fileInput.onchange = (e: Event) => {
-					const target = e.target as HTMLInputElement;
-					const file = target.files?.[0];
-					if (file) {
-						handleAudioFile(file);
+					// Simple click handler that works on both desktop and mobile
+					uploadArea.addEventListener('click', () => {
+						fileInput.click();
+					});
+
+					// Visual feedback for touch
+					uploadArea.addEventListener('touchstart', () => {
+						uploadArea.style.borderColor = 'var(--primary)';
+					});
+
+					uploadArea.addEventListener('touchend', () => {
+						uploadArea.style.borderColor = '#ccc';
+					});
+
+					// Handle drag and drop
+					uploadArea.addEventListener('dragover', (e: DragEvent) => {
+						e.preventDefault();
+						uploadArea.style.borderColor = 'var(--primary)';
+					});
+
+					uploadArea.addEventListener('dragleave', () => {
+						uploadArea.style.borderColor = '#ccc';
+					});
+
+					uploadArea.addEventListener('drop', (e: DragEvent) => {
+						e.preventDefault();
+						uploadArea.style.borderColor = '#ccc';
+						const file = e.dataTransfer?.files[0];
+						if (file && file.type.startsWith('audio/')) {
+							handleAudioFile(file);
+						}
+					});
+
+					fileInput.addEventListener('change', (e: Event) => {
+						const target = e.target as HTMLInputElement;
+						const file = target.files?.[0];
+						if (file) {
+							handleAudioFile(file);
+						}
+					});
+
+					async function handleAudioFile(file: File) {
+						const url = URL.createObjectURL(file);
+						if (player) {
+							player.dispose();
+						}
+						
+						// Create new player
+						player = new Tone.Player(url);
+						player.toDestination();
+						
+						// Update UI to show file is loaded
+						const uploadText = document.getElementById('uploadText');
+						if (uploadText) {
+							uploadText.textContent = `Loaded: ${file.name}`;
+						}
 					}
-				};
-			}
 
-			async function handleAudioFile(file: File) {
-				const url = URL.createObjectURL(file);
-				if (player) {
-					player.dispose();
-				}
-				
-				// Create new player
-				player = new Tone.Player(url);
-				player.toDestination();
-				
-				// Update UI to show file is loaded
-				const uploadText = document.getElementById('uploadText');
-				if (uploadText) {
-					uploadText.textContent = `Loaded: ${file.name}`;
-				}
-			}
+					// Playback controls
+					const playBtn = document.getElementById('playBtn');
+					const pauseBtn = document.getElementById('pauseBtn');
+					const stopBtn = document.getElementById('stopBtn');
+					const loopBtn = document.getElementById('loopBtn');
+					const volumeSlider = document.getElementById('volumeSlider') as HTMLInputElement;
+					const playbackRateSlider = document.getElementById('playbackRateSlider') as HTMLInputElement;
 
-			// Playback controls
-			const playBtn = document.getElementById('playBtn');
-			const pauseBtn = document.getElementById('pauseBtn');
-			const stopBtn = document.getElementById('stopBtn');
-			const loopBtn = document.getElementById('loopBtn');
-			const volumeSlider = document.getElementById('volumeSlider') as HTMLInputElement;
-			const playbackRateSlider = document.getElementById('playbackRateSlider') as HTMLInputElement;
+					playBtn?.addEventListener('click', () => {
+						if (player) {
+							player.start();
+						}
+					});
 
-			playBtn?.addEventListener('click', () => {
-				if (player) {
-					player.start();
-				}
-			});
+					pauseBtn?.addEventListener('click', () => {
+						if (player) {
+							player.stop();
+						}
+					});
 
-			pauseBtn?.addEventListener('click', () => {
-				if (player) {
-					player.stop();
-				}
-			});
+					stopBtn?.addEventListener('click', () => {
+						if (player) {
+							player.stop();
+						}
+					});
 
-			stopBtn?.addEventListener('click', () => {
-				if (player) {
-					player.stop();
-				}
-			});
+					loopBtn?.addEventListener('click', () => {
+						if (player) {
+							player.loop = !player.loop;
+							loopBtn.classList.toggle('active');
+						}
+					});
 
-			loopBtn?.addEventListener('click', () => {
-				if (player) {
-					player.loop = !player.loop;
-					loopBtn.classList.toggle('active');
-				}
-			});
+					// Volume control
+					volumeSlider?.addEventListener('input', (e: Event) => {
+						if (player) {
+							player.volume.value = parseFloat((e.target as HTMLInputElement).value);
+						}
+					});
 
-			// Volume control
-			volumeSlider?.addEventListener('input', (e: Event) => {
-				if (player) {
-					player.volume.value = parseFloat((e.target as HTMLInputElement).value);
-				}
-			});
+					// Playback rate control
+					playbackRateSlider?.addEventListener('input', (e: Event) => {
+						if (player) {
+							player.playbackRate = parseFloat((e.target as HTMLInputElement).value);
+						}
+					});
 
-			// Playback rate control
-			playbackRateSlider?.addEventListener('input', (e: Event) => {
-				if (player) {
-					player.playbackRate = parseFloat((e.target as HTMLInputElement).value);
-				}
-			});
+					// Effects controls
+					const reverbBtn = document.getElementById('reverbBtn');
+					const reverbControls = document.getElementById('reverbControls');
+					const delayBtn = document.getElementById('delayBtn');
+					const delayControls = document.getElementById('delayControls');
+					const distortionBtn = document.getElementById('distortionBtn');
+					const distortionControls = document.getElementById('distortionControls');
+					const filterBtn = document.getElementById('filterBtn');
+					const filterControls = document.getElementById('filterControls');
+					const pitchShiftBtn = document.getElementById('pitchShiftBtn');
+					const pitchShiftControls = document.getElementById('pitchShiftControls');
 
-			// Effects controls
-			const reverbBtn = document.getElementById('reverbBtn');
-			const reverbControls = document.getElementById('reverbControls');
-			const delayBtn = document.getElementById('delayBtn');
-			const delayControls = document.getElementById('delayControls');
-			const distortionBtn = document.getElementById('distortionBtn');
-			const distortionControls = document.getElementById('distortionControls');
-			const filterBtn = document.getElementById('filterBtn');
-			const filterControls = document.getElementById('filterControls');
-			const pitchShiftBtn = document.getElementById('pitchShiftBtn');
-			const pitchShiftControls = document.getElementById('pitchShiftControls');
+					reverbBtn?.addEventListener('click', () => {
+						if (player) {
+							isReverbOn = !isReverbOn;
+							if (isReverbOn) {
+								player.connect(reverb);
+								reverbBtn.classList.add('active');
+								if (reverbControls) reverbControls.style.display = 'block';
+							} else {
+								player.disconnect(reverb);
+								reverbBtn.classList.remove('active');
+								if (reverbControls) reverbControls.style.display = 'none';
+							}
+						}
+					});
 
-			reverbBtn?.addEventListener('click', () => {
-				if (player) {
-					isReverbOn = !isReverbOn;
-					if (isReverbOn) {
-						player.connect(reverb);
-						reverbBtn.classList.add('active');
-						if (reverbControls) reverbControls.style.display = 'block';
-					} else {
-						player.disconnect(reverb);
-						reverbBtn.classList.remove('active');
-						if (reverbControls) reverbControls.style.display = 'none';
+					delayBtn?.addEventListener('click', () => {
+						if (player) {
+							isDelayOn = !isDelayOn;
+							if (isDelayOn) {
+								player.connect(delay);
+								delayBtn.classList.add('active');
+								if (delayControls) delayControls.style.display = 'block';
+							} else {
+								player.disconnect(delay);
+								delayBtn.classList.remove('active');
+								if (delayControls) delayControls.style.display = 'none';
+							}
+						}
+					});
+
+					distortionBtn?.addEventListener('click', () => {
+						if (player) {
+							isDistortionOn = !isDistortionOn;
+							if (isDistortionOn) {
+								player.connect(distortion);
+								distortionBtn.classList.add('active');
+								if (distortionControls) distortionControls.style.display = 'block';
+							} else {
+								player.disconnect(distortion);
+								distortionBtn.classList.remove('active');
+								if (distortionControls) distortionControls.style.display = 'none';
+							}
+						}
+					});
+
+					filterBtn?.addEventListener('click', () => {
+						if (player) {
+							isFilterOn = !isFilterOn;
+							if (isFilterOn) {
+								player.connect(filter);
+								filterBtn.classList.add('active');
+								if (filterControls) filterControls.style.display = 'block';
+							} else {
+								player.disconnect(filter);
+								filterBtn.classList.remove('active');
+								if (filterControls) filterControls.style.display = 'none';
+							}
+						}
+					});
+
+					pitchShiftBtn?.addEventListener('click', () => {
+						if (player) {
+							isPitchShiftOn = !isPitchShiftOn;
+							if (isPitchShiftOn) {
+								player.connect(pitchShift);
+								pitchShiftBtn.classList.add('active');
+								if (pitchShiftControls) pitchShiftControls.style.display = 'block';
+							} else {
+								player.disconnect(pitchShift);
+								pitchShiftBtn.classList.remove('active');
+								if (pitchShiftControls) pitchShiftControls.style.display = 'none';
+							}
+						}
+					});
+
+					// Effect parameter controls
+					const reverbDecaySlider = document.getElementById('reverbDecaySlider') as HTMLInputElement;
+					const delayTimeSlider = document.getElementById('delayTimeSlider') as HTMLInputElement;
+					const delayFeedbackSlider = document.getElementById('delayFeedbackSlider') as HTMLInputElement;
+					const distortionSlider = document.getElementById('distortionSlider') as HTMLInputElement;
+					const filterFreqSlider = document.getElementById('filterFreqSlider') as HTMLInputElement;
+					const filterQSlider = document.getElementById('filterQSlider') as HTMLInputElement;
+					const pitchShiftSlider = document.getElementById('pitchShiftSlider') as HTMLInputElement;
+
+					if (reverbDecaySlider) {
+						reverbDecaySlider.addEventListener('input', (e: Event) => {
+							const target = e.target as HTMLInputElement;
+							reverb.decay = parseFloat(target.value);
+						});
 					}
-				}
-			});
 
-			delayBtn?.addEventListener('click', () => {
-				if (player) {
-					isDelayOn = !isDelayOn;
-					if (isDelayOn) {
-						player.connect(delay);
-						delayBtn.classList.add('active');
-						if (delayControls) delayControls.style.display = 'block';
-					} else {
-						player.disconnect(delay);
-						delayBtn.classList.remove('active');
-						if (delayControls) delayControls.style.display = 'none';
+					if (delayTimeSlider) {
+						delayTimeSlider.addEventListener('input', (e: Event) => {
+							const target = e.target as HTMLInputElement;
+							delay.delayTime.value = parseFloat(target.value);
+						});
 					}
-				}
-			});
 
-			distortionBtn?.addEventListener('click', () => {
-				if (player) {
-					isDistortionOn = !isDistortionOn;
-					if (isDistortionOn) {
-						player.connect(distortion);
-						distortionBtn.classList.add('active');
-						if (distortionControls) distortionControls.style.display = 'block';
-					} else {
-						player.disconnect(distortion);
-						distortionBtn.classList.remove('active');
-						if (distortionControls) distortionControls.style.display = 'none';
+					if (delayFeedbackSlider) {
+						delayFeedbackSlider.addEventListener('input', (e: Event) => {
+							const target = e.target as HTMLInputElement;
+							delay.feedback.value = parseFloat(target.value);
+						});
 					}
-				}
-			});
 
-			filterBtn?.addEventListener('click', () => {
-				if (player) {
-					isFilterOn = !isFilterOn;
-					if (isFilterOn) {
-						player.connect(filter);
-						filterBtn.classList.add('active');
-						if (filterControls) filterControls.style.display = 'block';
-					} else {
-						player.disconnect(filter);
-						filterBtn.classList.remove('active');
-						if (filterControls) filterControls.style.display = 'none';
+					if (distortionSlider) {
+						distortionSlider.addEventListener('input', (e: Event) => {
+							const target = e.target as HTMLInputElement;
+							distortion.distortion = parseFloat(target.value);
+						});
 					}
-				}
-			});
 
-			pitchShiftBtn?.addEventListener('click', () => {
-				if (player) {
-					isPitchShiftOn = !isPitchShiftOn;
-					if (isPitchShiftOn) {
-						player.connect(pitchShift);
-						pitchShiftBtn.classList.add('active');
-						if (pitchShiftControls) pitchShiftControls.style.display = 'block';
-					} else {
-						player.disconnect(pitchShift);
-						pitchShiftBtn.classList.remove('active');
-						if (pitchShiftControls) pitchShiftControls.style.display = 'none';
+					if (filterFreqSlider) {
+						filterFreqSlider.addEventListener('input', (e: Event) => {
+							const target = e.target as HTMLInputElement;
+							filter.frequency.value = parseFloat(target.value);
+						});
 					}
+
+					if (filterQSlider) {
+						filterQSlider.addEventListener('input', (e: Event) => {
+							const target = e.target as HTMLInputElement;
+							filter.Q.value = parseFloat(target.value);
+						});
+					}
+
+					if (pitchShiftSlider) {
+						pitchShiftSlider.addEventListener('input', (e: Event) => {
+							const target = e.target as HTMLInputElement;
+							pitchShift.pitch = parseFloat(target.value);
+						});
+					}
+
+				} catch (error) {
+					console.error('Error initializing audio player:', error);
 				}
 			});
-
-			// Effect parameter controls
-			const reverbDecaySlider = document.getElementById('reverbDecaySlider') as HTMLInputElement;
-			const delayTimeSlider = document.getElementById('delayTimeSlider') as HTMLInputElement;
-			const delayFeedbackSlider = document.getElementById('delayFeedbackSlider') as HTMLInputElement;
-			const distortionSlider = document.getElementById('distortionSlider') as HTMLInputElement;
-			const filterFreqSlider = document.getElementById('filterFreqSlider') as HTMLInputElement;
-			const filterQSlider = document.getElementById('filterQSlider') as HTMLInputElement;
-			const pitchShiftSlider = document.getElementById('pitchShiftSlider') as HTMLInputElement;
-
-			if (reverbDecaySlider) {
-				reverbDecaySlider.addEventListener('input', (e: Event) => {
-					const target = e.target as HTMLInputElement;
-					reverb.decay = parseFloat(target.value);
-				});
-			}
-
-			if (delayTimeSlider) {
-				delayTimeSlider.addEventListener('input', (e: Event) => {
-					const target = e.target as HTMLInputElement;
-					delay.delayTime.value = parseFloat(target.value);
-				});
-			}
-
-			if (delayFeedbackSlider) {
-				delayFeedbackSlider.addEventListener('input', (e: Event) => {
-					const target = e.target as HTMLInputElement;
-					delay.feedback.value = parseFloat(target.value);
-				});
-			}
-
-			if (distortionSlider) {
-				distortionSlider.addEventListener('input', (e: Event) => {
-					const target = e.target as HTMLInputElement;
-					distortion.distortion = parseFloat(target.value);
-				});
-			}
-
-			if (filterFreqSlider) {
-				filterFreqSlider.addEventListener('input', (e: Event) => {
-					const target = e.target as HTMLInputElement;
-					filter.frequency.value = parseFloat(target.value);
-				});
-			}
-
-			if (filterQSlider) {
-				filterQSlider.addEventListener('input', (e: Event) => {
-					const target = e.target as HTMLInputElement;
-					filter.Q.value = parseFloat(target.value);
-				});
-			}
-
-			if (pitchShiftSlider) {
-				pitchShiftSlider.addEventListener('input', (e: Event) => {
-					const target = e.target as HTMLInputElement;
-					pitchShift.pitch = parseFloat(target.value);
-				});
-			}
 		</script>
 	</body>
 </html>
