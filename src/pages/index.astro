@@ -412,6 +412,18 @@
 					return;
 				}
 
+				// Make file input visible on mobile devices
+				if ('ontouchstart' in window) {
+					fileInput.style.display = 'block';
+					fileInput.style.width = '100%';
+					fileInput.style.height = '100%';
+					fileInput.style.position = 'absolute';
+					fileInput.style.top = '0';
+					fileInput.style.left = '0';
+					fileInput.style.opacity = '0';
+					fileInput.style.cursor = 'pointer';
+				}
+
 				async function initializeAudio() {
 					if (isInitialized) return;
 					
@@ -437,29 +449,17 @@
 				}
 
 				// Handle mobile touch events
-				let touchStartTime = 0;
-				const TOUCH_THRESHOLD = 200; // milliseconds
-
 				uploadArea.addEventListener('touchstart', (e) => {
-					touchStartTime = Date.now();
 					uploadArea.style.borderColor = 'var(--primary)';
 				}, { passive: true });
 
-				uploadArea.addEventListener('touchend', async (e) => {
-					const touchDuration = Date.now() - touchStartTime;
+				uploadArea.addEventListener('touchend', () => {
 					uploadArea.style.borderColor = '#ccc';
-					
-					// Only trigger if it's a short tap (not a scroll)
-					if (touchDuration < TOUCH_THRESHOLD) {
-						e.preventDefault();
-						fileInput.click();
-					}
-				});
+				}, { passive: true });
 
 				// Handle click for desktop
 				uploadArea.addEventListener('click', (e) => {
-					// Check if the event is a pointer event
-					if (e instanceof PointerEvent && e.pointerType !== 'touch') {
+					if (!('ontouchstart' in window)) {
 						fileInput.click();
 					}
 				});
