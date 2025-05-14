@@ -226,14 +226,44 @@
 				padding: 2rem 2rem 4rem;
 				text-align: center;
 				margin: 0 0 2rem;
-				cursor: pointer;
 				position: relative;
 				letter-spacing: 1px;
 				font-size: 1.2rem;
 				text-shadow: 0 1px 0 #fff8, 0 0 2px #baff39;
 				overflow: hidden;
 			}
-			.tracks-btn {
+			.progress-container {
+				width: 100%;
+				height: 4px;
+				background: rgba(0, 0, 0, 0.2);
+				border-radius: 2px;
+				margin: 1rem 0;
+				position: relative;
+				cursor: pointer;
+			}
+			.progress-bar {
+				height: 100%;
+				background: #222;
+				border-radius: 2px;
+				width: 0%;
+				transition: width 0.1s linear;
+			}
+			.progress-handle {
+				width: 12px;
+				height: 12px;
+				background: #222;
+				border-radius: 50%;
+				position: absolute;
+				top: 50%;
+				transform: translate(-50%, -50%);
+				left: 0%;
+				opacity: 0;
+				transition: opacity 0.2s ease;
+			}
+			.progress-container:hover .progress-handle {
+				opacity: 1;
+			}
+			.tracks-btn, .import-btn {
 				position: absolute;
 				bottom: 10px;
 				right: 10px;
@@ -247,9 +277,12 @@
 				transition: all 0.2s ease;
 				text-shadow: none;
 			}
-			.tracks-btn:hover {
+			.tracks-btn:hover, .import-btn:hover {
 				background: #333;
 				transform: scale(1.05);
+			}
+			.tracks-btn {
+				right: 120px;
 			}
 			.tracks-panel {
 				display: none;
@@ -440,6 +473,53 @@
 					font-size: 1rem;
 				}
 			}
+			.loop-pads-grid {
+				display: grid;
+				grid-template-columns: repeat(3, minmax(70px, 1fr));
+				grid-template-rows: repeat(3, minmax(70px, 1fr));
+				gap: 14px;
+				justify-items: stretch;
+				align-items: stretch;
+				margin: 0;
+				padding: 0;
+				width: 100%;
+				margin-left: auto;
+				margin-right: auto;
+			}
+			.loop-pad {
+				width: 100%;
+				height: 0;
+				padding-bottom: 100%; /* 1:1 aspect ratio */
+				background: #18181b;
+				border: 3px solid #18181b;
+				border-radius: 12px;
+				color: #fff;
+				font-size: 1.1rem;
+				font-family: 'Share Tech Mono', monospace;
+				transition: border 0.2s, box-shadow 0.2s, background 0.2s;
+				outline: none;
+				cursor: pointer;
+				margin: 0;
+				position: relative;
+				overflow: hidden;
+			}
+			.loop-pad span {
+				position: absolute;
+				left: 50%;
+				top: 50%;
+				transform: translate(-50%, -50%);
+			}
+			.loop-pad:active, .loop-pad.active {
+				border: 3px solid #ffd700;
+				box-shadow: 0 0 0 3px #ffd700, 0 0 18px #eeff00;
+				background: #232326;
+			}
+			@media (max-width: 480px) {
+				.loop-pads-grid {
+					max-width: 98vw;
+					gap: 8px;
+				}
+			}
 		</style>
 	</head>
 	<body>
@@ -456,12 +536,17 @@
 
 			<div class="field">
 				<div class="upload-area" id="uploadArea">
-					<p id="uploadText">Click to upload audio or press the "TRACKS" button</p>
+					<p id="uploadText">IMPORT audio or select from TRACKS below</p>
+					<div class="progress-container" id="progressContainer">
+						<div class="progress-bar" id="progressBar"></div>
+						<div class="progress-handle" id="progressHandle"></div>
+					</div>
 					<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5em;">
 						<div id="timeDisplay" style="font-size: 1em; font-family: 'Share Tech Mono', monospace;">00:00 / 00:00</div>
 						<div id="bpmDisplay" style="font-size: 1em;"></div>
 					</div>
 					<input type="file" id="fileInput" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.webm" style="display: none" />
+					<button class="import-btn" id="importBtn">+ IMPORT</button>
 					<button class="tracks-btn" id="tracksBtn">♫ TRACKS</button>
 				</div>
 				<div class="tracks-panel" id="tracksPanel">
@@ -545,6 +630,24 @@
 					</div>
 				</div>
 			</div>
+
+			<!-- Custom Loop Pads Section -->
+			<div class="field">
+				<div class="section-title">CUSTOM LOOPS</div>
+				<div class="panel">
+					<div class="loop-pads-grid">
+						<button class="loop-pad" id="pad-1"><span>PAD 1</span></button>
+						<button class="loop-pad" id="pad-2"><span>PAD 2</span></button>
+						<button class="loop-pad" id="pad-3"><span>PAD 3</span></button>
+						<button class="loop-pad" id="pad-4"><span>PAD 4</span></button>
+						<button class="loop-pad" id="pad-5"><span>PAD 5</span></button>
+						<button class="loop-pad" id="pad-6"><span>PAD 6</span></button>
+						<button class="loop-pad" id="pad-7"><span>PAD 7</span></button>
+						<button class="loop-pad" id="pad-8"><span>PAD 8</span></button>
+						<button class="loop-pad" id="pad-9"><span>PAD 9</span></button>
+					</div>
+				</div>
+			</div>
 		</div>
 
 		<script>
@@ -584,11 +687,31 @@
 						let currentTime = 0;
 						if (!isPaused && playbackStartTimestamp) {
 							currentTime = (Date.now() - playbackStartTimestamp) / 1000 + offsetAtStart;
+							// Check if we've reached the end of the track
+							if (currentTime >= player.buffer.duration) {
+								currentTime = 0;
+								player.stop();
+								playbackStartTimestamp = 0;
+								offsetAtStart = 0;
+								isPaused = false;
+								if (playBtn) playBtn.classList.remove('active');
+								if (pauseBtn) pauseBtn.classList.remove('active');
+								stopTimeUpdate();
+							}
 						} else {
 							currentTime = pausedPosition || 0;
 						}
 						const duration = player.buffer.duration || 0;
 						timeDisplay.textContent = `${formatTime(currentTime)} / ${formatTime(duration)}`;
+						
+						// Update progress bar
+						const progressBar = document.getElementById('progressBar');
+						const progressHandle = document.getElementById('progressHandle');
+						if (progressBar && progressHandle) {
+							const progress = (currentTime / duration) * 100;
+							progressBar.style.width = `${progress}%`;
+							progressHandle.style.left = `${progress}%`;
+						}
 					} else if (timeDisplay) {
 						timeDisplay.textContent = '00:00 / 00:00';
 					}
@@ -753,10 +876,9 @@
 				}, { passive: true });
 
 				// Handle click for desktop
-				uploadArea.addEventListener('click', (e) => {
-					if (!('ontouchstart' in window)) {
-						fileInput.click();
-					}
+				const importBtn = document.getElementById('importBtn');
+				importBtn?.addEventListener('click', () => {
+					fileInput.click();
 				});
 
 				// Handle drag and drop
@@ -1031,6 +1153,92 @@
 					pitchShiftSlider.addEventListener('input', (e: Event) => {
 						const target = e.target as HTMLInputElement;
 						pitchShift.pitch = parseFloat(target.value);
+					});
+				}
+
+				// Add progress bar click handling
+				const progressContainer = document.getElementById('progressContainer');
+				if (progressContainer) {
+					let isDragging = false;
+					let wasPlaying = false;
+
+					// Function to update audio position based on drag position
+					const updateAudioPosition = (clientX: number) => {
+						if (player && player.buffer) {
+							const rect = progressContainer.getBoundingClientRect();
+							const clickPosition = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+							const newTime = clickPosition * player.buffer.duration;
+							
+							if (!isPaused) {
+								player.seek(newTime);
+								playbackStartTimestamp = Date.now();
+								offsetAtStart = newTime;
+							} else {
+								pausedPosition = newTime;
+							}
+							updateTimeDisplay();
+						}
+					};
+
+					// Mouse events for desktop
+					progressContainer.addEventListener('mousedown', (e) => {
+						isDragging = true;
+						wasPlaying = !isPaused;
+						if (wasPlaying) {
+							player?.stop();
+						}
+						updateAudioPosition(e.clientX);
+					});
+
+					document.addEventListener('mousemove', (e) => {
+						if (isDragging) {
+							updateAudioPosition(e.clientX);
+						}
+					});
+
+					document.addEventListener('mouseup', () => {
+						if (isDragging) {
+							isDragging = false;
+							if (wasPlaying) {
+								player?.start();
+								playbackStartTimestamp = Date.now();
+								offsetAtStart = pausedPosition;
+							}
+						}
+					});
+
+					// Touch events for mobile
+					progressContainer.addEventListener('touchstart', (e) => {
+						isDragging = true;
+						wasPlaying = !isPaused;
+						if (wasPlaying) {
+							player?.stop();
+						}
+						updateAudioPosition(e.touches[0].clientX);
+					}, { passive: true });
+
+					document.addEventListener('touchmove', (e) => {
+						if (isDragging) {
+							updateAudioPosition(e.touches[0].clientX);
+						}
+					}, { passive: true });
+
+					document.addEventListener('touchend', () => {
+						if (isDragging) {
+							isDragging = false;
+							if (wasPlaying) {
+								player?.start();
+								playbackStartTimestamp = Date.now();
+								offsetAtStart = pausedPosition;
+							}
+						}
+					});
+
+					// Click handling (for non-drag interactions)
+					progressContainer.addEventListener('click', (e) => {
+						if (!isDragging) {
+							updateAudioPosition(e.clientX);
+						}
 					});
 				}
 
