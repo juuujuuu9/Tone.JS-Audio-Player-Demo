@@ -223,7 +223,7 @@
 				border: 20px solid #222;
 				border-radius: 6px;
 				box-shadow: 0 2px 8px #222a, inset 0 0 8px #fff8;
-				padding: 2rem;
+				padding: 2rem 2rem 4rem;
 				text-align: center;
 				margin: 0 0 2rem;
 				cursor: pointer;
@@ -457,7 +457,10 @@
 			<div class="field">
 				<div class="upload-area" id="uploadArea">
 					<p id="uploadText">Click to upload audio or press the "TRACKS" button</p>
-					<div id="bpmDisplay" style="margin-top: 0.5em; font-size: 1em;"></div>
+					<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5em;">
+						<div id="timeDisplay" style="font-size: 1em; font-family: 'Share Tech Mono', monospace;">00:00 / 00:00</div>
+						<div id="bpmDisplay" style="font-size: 1em;"></div>
+					</div>
 					<input type="file" id="fileInput" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.webm" style="display: none" />
 					<button class="tracks-btn" id="tracksBtn">♫ TRACKS</button>
 				</div>
@@ -466,11 +469,11 @@
 					<div class="track-list">
 						<div class="track-item" data-track="/samples/WARMTH.m4a">
 							<h3>WARMTH.m4a</h3>
-							<p>♪♪♪♪</p>
+							<p>♬♬♬♬</p>
 						</div>
 						<div class="track-item" data-track="/samples/SEE THRU (0).m4a">
 							<h3>SEE THRU (0).m4a</h3>
-							<p>♬♬♬♬</p>
+							<p>♩♩♩♩</p>
 						</div>
 						<div class="track-item" data-track="/samples/Miles.mp3">
 							<h3>Miles.mp3</h3>
@@ -554,6 +557,9 @@
 				let distortion: any;
 				let pitchShift: any;
 				let isInitialized = false;
+				let pausedPosition: number = 0;
+				let isPaused: boolean = false;
+				let timeUpdateInterval: number | null = null;
 
 				let isReverbOn = false;
 				let isDelayOn = false;
@@ -562,6 +568,45 @@
 
 				let detectedBpm: number | null = null;
 				const bpmDisplay = document.getElementById('bpmDisplay');
+				const timeDisplay = document.getElementById('timeDisplay');
+
+				let playbackStartTimestamp = 0;
+				let offsetAtStart = 0;
+
+				function formatTime(seconds: number): string {
+					const minutes = Math.floor(seconds / 60);
+					const remainingSeconds = Math.floor(seconds % 60);
+					return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+				}
+
+				function updateTimeDisplay() {
+					if (player && timeDisplay && player.buffer) {
+						let currentTime = 0;
+						if (!isPaused && playbackStartTimestamp) {
+							currentTime = (Date.now() - playbackStartTimestamp) / 1000 + offsetAtStart;
+						} else {
+							currentTime = pausedPosition || 0;
+						}
+						const duration = player.buffer.duration || 0;
+						timeDisplay.textContent = `${formatTime(currentTime)} / ${formatTime(duration)}`;
+					} else if (timeDisplay) {
+						timeDisplay.textContent = '00:00 / 00:00';
+					}
+				}
+
+				function startTimeUpdate() {
+					if (timeUpdateInterval) {
+						clearInterval(timeUpdateInterval);
+					}
+					timeUpdateInterval = window.setInterval(updateTimeDisplay, 100);
+				}
+
+				function stopTimeUpdate() {
+					if (timeUpdateInterval) {
+						clearInterval(timeUpdateInterval);
+						timeUpdateInterval = null;
+					}
+				}
 
 				// File upload handling
 				const uploadArea = document.getElementById('uploadArea');
@@ -600,11 +645,6 @@
 									const uploadText = document.getElementById('uploadText');
 									if (uploadText) {
 										uploadText.textContent = `Loaded: ${trackPath.split('/').pop()}`;
-									}
-									// Enable play button after successful load
-									const playBtn = document.getElementById('playBtn');
-									if (playBtn) {
-										playBtn.classList.add('active');
 									}
 									// Ensure audio context is running
 									if (Tone.context.state !== 'running') {
@@ -768,39 +808,16 @@
 								if (uploadText) {
 									uploadText.textContent = `Loaded: ${file.name}`;
 								}
-								// Enable play button after successful load
-								const playBtn = document.getElementById('playBtn');
-								if (playBtn) {
-									playBtn.classList.add('active');
-								}
 								// Ensure audio context is running
 								if (Tone.context.state !== 'running') {
 									await Tone.start();
 								}
-								// Now decode and analyze for BPM
-								try {
-									const { analyze } = await import('web-audio-beat-detector');
-									const audioContext = Tone.context.rawContext || Tone.context;
-									const response = await fetch(url);
-									const arrayBuffer = await response.arrayBuffer();
-									audioContext.decodeAudioData(arrayBuffer, async (audioBuffer: AudioBuffer) => {
-										try {
-											detectedBpm = await analyze(audioBuffer);
-											if (bpmDisplay) {
-												bpmDisplay.textContent = detectedBpm !== null ? `BPM: ${Math.round(detectedBpm)}` : 'BPM: ?';
-											}
-										} catch (err) {
-											console.error('BPM detection error:', err);
-											if (bpmDisplay) bpmDisplay.textContent = 'BPM: ?';
-										}
-									}, (decodeErr: any) => {
-										console.error('decodeAudioData error:', decodeErr);
-										if (bpmDisplay) bpmDisplay.textContent = 'BPM: ?';
-									});
-								} catch (err) {
-									console.error('BPM detection setup error:', err);
-									if (bpmDisplay) bpmDisplay.textContent = 'BPM: ?';
-								}
+								// Connect player to destination
+								player.toDestination();
+								// Set volume to maximum
+								player.volume.value = 0;
+								// Update time display with initial values
+								updateTimeDisplay();
 							},
 							onerror: (error: Error) => {
 								console.error('Error loading audio file:', error);
@@ -809,15 +826,7 @@
 									uploadText.textContent = 'Error loading file. Please try again.';
 								}
 							}
-						}).toDestination();
-						// Set mobile-friendly buffer settings
-						player.buffer.set({
-							numberOfChannels: 2,
-							length: 0,
-							sampleRate: Tone.context.sampleRate
 						});
-						// Set volume to maximum
-						player.volume.value = 0;
 					} catch (error) {
 						console.error('Error handling audio file:', error);
 						const uploadText = document.getElementById('uploadText');
@@ -837,11 +846,23 @@
 				playBtn?.addEventListener('click', async () => {
 					if (player) {
 						try {
-							// Ensure audio context is running before playing
-							if (Tone.context.state !== 'running') {
-								await Tone.start();
+							if (Tone.context.state !== 'running') await Tone.start();
+							if (isPaused) {
+								await player.start();
+								player.seek(pausedPosition);
+								playbackStartTimestamp = Date.now();
+								offsetAtStart = pausedPosition;
+								isPaused = false;
+							} else {
+								await player.start();
+								player.seek(0);
+								playbackStartTimestamp = Date.now();
+								offsetAtStart = 0;
 							}
-							await player.start();
+							if (playBtn) playBtn.classList.add('active');
+							if (pauseBtn) pauseBtn.classList.remove('active');
+							updateTimeDisplay();
+							startTimeUpdate();
 						} catch (error) {
 							console.error('Error starting playback:', error);
 						}
@@ -851,9 +872,15 @@
 				pauseBtn?.addEventListener('click', async () => {
 					if (player) {
 						try {
+							pausedPosition = (Date.now() - playbackStartTimestamp) / 1000 + offsetAtStart;
 							await player.stop();
+							isPaused = true;
+							if (playBtn) playBtn.classList.remove('active');
+							if (pauseBtn) pauseBtn.classList.add('active');
+							stopTimeUpdate();
+							updateTimeDisplay();
 						} catch (error) {
-							console.error('Error stopping playback:', error);
+							console.error('Error pausing playback:', error);
 						}
 					}
 				});
@@ -863,6 +890,14 @@
 						try {
 							await player.stop();
 							player.seek(0);
+							pausedPosition = 0;
+							isPaused = false;
+							playbackStartTimestamp = 0;
+							offsetAtStart = 0;
+							if (playBtn) playBtn.classList.remove('active');
+							if (pauseBtn) pauseBtn.classList.remove('active');
+							stopTimeUpdate();
+							updateTimeDisplay();
 						} catch (error) {
 							console.error('Error stopping playback:', error);
 						}
