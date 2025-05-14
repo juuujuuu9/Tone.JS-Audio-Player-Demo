@@ -10,6 +10,10 @@
 		<meta name="generator" content={Astro.generator} />
 		<title>TF Audio Manipulator</title>
 		<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/98mprice/PSone.css@master/PSone.css" />
+		<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+		<link href="https://fonts.cdnfonts.com/css/armygedon" rel="stylesheet"><!-- font-family: 'Armygedon', sans-serif; -->
+		<link href="https://fonts.cdnfonts.com/css/esportiva" rel="stylesheet"><!-- font-family: 'Esportiva', sans-serif; --> 
+		        
 		<style>
 			:root {
 				--primary: #646cff;
@@ -35,10 +39,41 @@
 					padding: 0.25rem;
 				}
 			}
+			.header {
+				display: flex;
+				justify-content: center;
+				align-items: flex-end;
+				gap: 1rem;
+				margin: 1rem 1rem 0;
+			}
+			.title-container {
+				width: 50%;
+				display: flex;
+				justify-content: flex-start;
+				align-items: flex-start;
+			}
 			.title {
 				line-height: 1;
 				margin: 0;
-				text-align: center;
+				text-align: left;
+			}
+			.big-title-container {
+				display: flex;
+				justify-content: flex-end;
+				align-items: flex-end;
+				gap: 1rem;
+				width: 50%;
+				margin-bottom: 1rem;
+			}
+			.big-title-1 {
+				font-family: 'Armygedon', sans-serif;
+				font-size: 4rem;
+				line-height: 100%;	
+			}
+			.big-title-2 {
+				font-family: 'Esportiva', sans-serif;
+				font-size: 4rem;
+				line-height: 84%;
 			}
 			.container {
 				max-width: 600px;
@@ -51,7 +86,6 @@
 			.section-title {
 				font-size: 1.5rem;
 				font-weight: 600;
-				margin-top: 2rem;
 				margin-bottom: 1rem;
 				color: var(--text-main);
 				letter-spacing: 1px;
@@ -62,6 +96,7 @@
 				padding: 1.2rem 1.5rem;
 				margin-bottom: 1.5rem;
 				box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+				text-align: center;
 			}
 			.slider-label {
 				display: flex;
@@ -187,19 +222,40 @@
 				gap: 1.5rem;
 			}
 			.upload-area {
-				border: 2px dashed #ccc;
-				border-radius: 8px;
+				font-family: 'Share Tech Mono', 'Courier New', Courier, monospace;
+				background: linear-gradient(180deg, #d4ff7f 0%, #baff39 100%);
+				color: #222;
+				border: 20px solid #222;
+				border-radius: 6px;
+				box-shadow: 0 2px 8px #222a, inset 0 0 8px #fff8;
 				padding: 2rem;
 				text-align: center;
-				margin: 2rem 0;
-				background: var(--slider-bg);
+				margin: 0 0 2rem;
 				cursor: pointer;
-				transition: all 0.3s ease;
-				-webkit-tap-highlight-color: transparent;
-				touch-action: pan-y pinch-zoom;
+				position: relative;
+				letter-spacing: 1px;
+				font-size: 1.2rem;
+				text-shadow: 0 1px 0 #fff8, 0 0 2px #baff39;
+				overflow: hidden;
 			}
-			.upload-area:hover {
-				border-color: var(--primary);
+			.upload-area::before {
+				content: '';
+				position: absolute;
+				top: 0; left: 0; right: 0; bottom: 0;
+				pointer-events: none;
+				background: repeating-linear-gradient(
+					to bottom,
+					rgba(0,0,0,0.04) 0px,
+					rgba(0,0,0,0.04) 2px,
+					transparent 2px,
+					transparent 6px
+				);
+			}
+			#uploadText {
+				font-weight: bold;
+				font-size: 1.3em;
+				letter-spacing: 2px;
+				text-shadow: none;
 			}
 			.controls {
 				display: grid;
@@ -291,11 +347,20 @@
 	</head>
 	<body>
 		<div class="container">
-			<h1 class="title">Th0th Ferrari<br>Audio Player</h1>
+			<div class="header">
+				<div class="title-container">
+					<h1 class="title">Th0th Ferrari<br>Audio Controller</h1>
+				</div>
+				<div class="big-title-container">
+					<span class="big-title-1">TFC</span>
+					<span class="big-title-2">88</span>
+				</div>
+			</div>
 
 			<div class="field">
 				<div class="upload-area" id="uploadArea">
 					<p id="uploadText">Drag and drop an audio file here or click to upload</p>
+					<div id="bpmDisplay" style="margin-top: 0.5em; font-size: 1em;"></div>
 					<input type="file" id="fileInput" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.webm" style="display: none" />
 				</div>
 			</div>
@@ -314,7 +379,7 @@
 				<div class="section-title">PLAYBACK RATE</div>
 				<div class="panel">
 					<div class="slider-label">
-						<span>Speed & Pitch</span>
+						<span>Speed + Pitch</span>
 					</div>
 					<input 
 						type="range" 
@@ -324,23 +389,6 @@
 						max="4" 
 						value="1" 
 						step="0.01"
-					/>
-				</div>
-			</div>
-
-			<div class="field">
-				<div class="section-title">VOLUME</div>
-				<div class="panel">
-					<div class="slider-label">
-						<span>Volume (dB)</span>
-					</div>
-					<input 
-						type="range" 
-						class="slider" 
-						id="volumeSlider" 
-						min="-60" 
-						max="0" 
-						value="-20" 
 					/>
 				</div>
 			</div>
@@ -402,6 +450,9 @@
 				let isDistortionOn = false;
 				let isFilterOn = false;
 				let isPitchShiftOn = false;
+
+				let detectedBpm: number | null = null;
+				const bpmDisplay = document.getElementById('bpmDisplay');
 
 				// File upload handling
 				const uploadArea = document.getElementById('uploadArea');
@@ -507,7 +558,6 @@
 						if (player) {
 							player.dispose();
 						}
-						
 						// Create new player with mobile-friendly settings
 						player = new Tone.Player({
 							url: url,
@@ -523,10 +573,33 @@
 								if (playBtn) {
 									playBtn.classList.add('active');
 								}
-								
 								// Ensure audio context is running
 								if (Tone.context.state !== 'running') {
 									await Tone.start();
+								}
+								// Now decode and analyze for BPM
+								try {
+									const { analyze } = await import('web-audio-beat-detector');
+									const audioContext = Tone.context.rawContext || Tone.context;
+									const response = await fetch(url);
+									const arrayBuffer = await response.arrayBuffer();
+									audioContext.decodeAudioData(arrayBuffer, async (audioBuffer: AudioBuffer) => {
+										try {
+											detectedBpm = await analyze(audioBuffer);
+											if (bpmDisplay) {
+												bpmDisplay.textContent = detectedBpm !== null ? `BPM: ${Math.round(detectedBpm)}` : 'BPM: ?';
+											}
+										} catch (err) {
+											console.error('BPM detection error:', err);
+											if (bpmDisplay) bpmDisplay.textContent = 'BPM: ?';
+										}
+									}, (decodeErr: any) => {
+										console.error('decodeAudioData error:', decodeErr);
+										if (bpmDisplay) bpmDisplay.textContent = 'BPM: ?';
+									});
+								} catch (err) {
+									console.error('BPM detection setup error:', err);
+									if (bpmDisplay) bpmDisplay.textContent = 'BPM: ?';
 								}
 							},
 							onerror: (error: Error) => {
@@ -537,13 +610,14 @@
 								}
 							}
 						}).toDestination();
-
 						// Set mobile-friendly buffer settings
 						player.buffer.set({
 							numberOfChannels: 2,
 							length: 0,
 							sampleRate: Tone.context.sampleRate
 						});
+						// Set volume to maximum
+						player.volume.value = 0;
 					} catch (error) {
 						console.error('Error handling audio file:', error);
 						const uploadText = document.getElementById('uploadText');
@@ -558,7 +632,6 @@
 				const pauseBtn = document.getElementById('pauseBtn');
 				const stopBtn = document.getElementById('stopBtn');
 				const loopBtn = document.getElementById('loopBtn');
-				const volumeSlider = document.getElementById('volumeSlider') as HTMLInputElement;
 				const playbackRateSlider = document.getElementById('playbackRateSlider') as HTMLInputElement;
 
 				playBtn?.addEventListener('click', async () => {
@@ -603,17 +676,14 @@
 					}
 				});
 
-				// Volume control
-				volumeSlider?.addEventListener('input', (e: Event) => {
-					if (player) {
-						player.volume.value = parseFloat((e.target as HTMLInputElement).value);
-					}
-				});
-
 				// Playback rate control
 				playbackRateSlider?.addEventListener('input', (e: Event) => {
 					if (player) {
-						player.playbackRate = parseFloat((e.target as HTMLInputElement).value);
+						const rate = parseFloat((e.target as HTMLInputElement).value);
+						player.playbackRate = rate;
+						if (bpmDisplay && detectedBpm) {
+							bpmDisplay.textContent = `BPM: ${Math.round(detectedBpm * rate)}`;
+						}
 					}
 				});
 
