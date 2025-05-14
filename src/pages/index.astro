@@ -233,18 +233,64 @@
 				text-shadow: 0 1px 0 #fff8, 0 0 2px #baff39;
 				overflow: hidden;
 			}
-			.upload-area::before {
-				content: '';
+			.tracks-btn {
 				position: absolute;
-				top: 0; left: 0; right: 0; bottom: 0;
-				pointer-events: none;
-				background: repeating-linear-gradient(
-					to bottom,
-					rgba(0,0,0,0.04) 0px,
-					rgba(0,0,0,0.04) 2px,
-					transparent 2px,
-					transparent 6px
-				);
+				bottom: 10px;
+				right: 10px;
+				background: #222;
+				color: #baff39;
+				border: none;
+				padding: 0.5rem 1rem;
+				border-radius: 4px;
+				font-family: 'Share Tech Mono', monospace;
+				cursor: pointer;
+				transition: all 0.2s ease;
+				text-shadow: none;
+			}
+			.tracks-btn:hover {
+				background: #333;
+				transform: scale(1.05);
+			}
+			.tracks-panel {
+				display: none;
+				background: var(--bg-panel);
+				border-radius: 18px;
+				padding: 1.2rem 1.5rem;
+				margin-bottom: 1.5rem;
+				box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+			}
+			.tracks-panel.active {
+				display: block;
+			}
+			.track-list {
+				display: grid;
+				grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+				gap: 1rem;
+				margin-top: 1rem;
+			}
+			.track-item {
+				background: var(--bg-dark);
+				padding: 1rem;
+				border-radius: 8px;
+				cursor: pointer;
+				transition: all 0.2s ease;
+				text-align: left;
+			}
+			.track-item:hover {
+				background: var(--primary);
+				transform: translateY(-2px);
+			}
+			.track-item h3 {
+				margin: 0 0 0.5rem 0;
+				font-size: 1.4rem;
+				font-weight: bold;
+				letter-spacing: 0.5px;
+			}
+			.track-item p {
+				margin: 0;
+				font-size: 1.1rem;
+				color: var(--text-label);
+				letter-spacing: 0.3px;
 			}
 			#uploadText {
 				font-weight: bold;
@@ -387,6 +433,12 @@
 					font-size: 1.2rem;
 					margin-bottom: 0.8rem;
 				}
+				.track-item h3 {
+					font-size: 1.2rem;
+				}
+				.track-item p {
+					font-size: 1rem;
+				}
 			}
 		</style>
 	</head>
@@ -407,6 +459,28 @@
 					<p id="uploadText">Drag and drop an audio file here or click to upload</p>
 					<div id="bpmDisplay" style="margin-top: 0.5em; font-size: 1em;"></div>
 					<input type="file" id="fileInput" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.webm" style="display: none" />
+					<button class="tracks-btn" id="tracksBtn">♫ TRACKS</button>
+				</div>
+				<div class="tracks-panel" id="tracksPanel">
+					<div class="section-title">PRELOADED TRACKS</div>
+					<div class="track-list">
+						<div class="track-item" data-track="/samples/WARMTH.m4a">
+							<h3>WARMTH</h3>
+							<p>Ambient track</p>
+						</div>
+						<div class="track-item" data-track="/samples/SEE THRU (0).m4a">
+							<h3>SEE THRU</h3>
+							<p>Experimental track</p>
+						</div>
+						<div class="track-item" data-track="/samples/Miles.mp3">
+							<h3>Miles</h3>
+							<p>Jazz track</p>
+						</div>
+						<div class="track-item" data-track="/samples/22TWO22TWO.m4a">
+							<h3>22TWO22TWO</h3>
+							<p>Electronic track</p>
+						</div>
+					</div>
 				</div>
 			</div>
 
@@ -492,11 +566,89 @@
 				// File upload handling
 				const uploadArea = document.getElementById('uploadArea');
 				const fileInput = document.getElementById('fileInput') as HTMLInputElement;
+				const tracksBtn = document.getElementById('tracksBtn');
+				const tracksPanel = document.getElementById('tracksPanel');
+				const trackItems = document.querySelectorAll('.track-item');
 
-				if (!uploadArea || !fileInput) {
+				if (!uploadArea || !fileInput || !tracksBtn || !tracksPanel) {
 					console.error('Required elements not found');
 					return;
 				}
+
+				// Tracks panel toggle
+				tracksBtn.addEventListener('click', (e) => {
+					e.stopPropagation(); // Prevent triggering upload area click
+					tracksPanel.classList.toggle('active');
+				});
+
+				// Handle track selection
+				trackItems.forEach(item => {
+					item.addEventListener('click', async (e) => {
+						e.stopPropagation();
+						const trackPath = (item as HTMLElement).dataset.track;
+						if (trackPath) {
+							await initializeAudio();
+							if (player) {
+								player.dispose();
+							}
+							// Create new player with the selected track
+							player = new Tone.Player({
+								url: trackPath,
+								onload: async () => {
+									console.log('Track loaded successfully');
+									// Update UI to show track is loaded
+									const uploadText = document.getElementById('uploadText');
+									if (uploadText) {
+										uploadText.textContent = `Loaded: ${trackPath.split('/').pop()}`;
+									}
+									// Enable play button after successful load
+									const playBtn = document.getElementById('playBtn');
+									if (playBtn) {
+										playBtn.classList.add('active');
+									}
+									// Ensure audio context is running
+									if (Tone.context.state !== 'running') {
+										await Tone.start();
+									}
+									// Now decode and analyze for BPM
+									try {
+										const { analyze } = await import('web-audio-beat-detector');
+										const audioContext = Tone.context.rawContext || Tone.context;
+										const response = await fetch(trackPath);
+										const arrayBuffer = await response.arrayBuffer();
+										audioContext.decodeAudioData(arrayBuffer, async (audioBuffer: AudioBuffer) => {
+											try {
+												detectedBpm = await analyze(audioBuffer);
+												if (bpmDisplay) {
+													bpmDisplay.textContent = detectedBpm !== null ? `BPM: ${Math.round(detectedBpm)}` : 'BPM: ?';
+												}
+											} catch (err) {
+												console.error('BPM detection error:', err);
+												if (bpmDisplay) bpmDisplay.textContent = 'BPM: ?';
+											}
+										}, (decodeErr: any) => {
+											console.error('decodeAudioData error:', decodeErr);
+											if (bpmDisplay) bpmDisplay.textContent = 'BPM: ?';
+										});
+									} catch (err) {
+										console.error('BPM detection setup error:', err);
+										if (bpmDisplay) bpmDisplay.textContent = 'BPM: ?';
+									}
+								},
+								onerror: (error: Error) => {
+									console.error('Error loading track:', error);
+									const uploadText = document.getElementById('uploadText');
+									if (uploadText) {
+										uploadText.textContent = 'Error loading track. Please try again.';
+									}
+								}
+							}).toDestination();
+							// Set volume to maximum
+							player.volume.value = 0;
+							tracksPanel.classList.remove('active');
+						}
+					});
+				});
 
 				// Make file input visible on mobile devices
 				if ('ontouchstart' in window) {
