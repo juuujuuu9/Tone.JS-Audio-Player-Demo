@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "astro": "^5.7.12",
-    "tone": "^15.1.22"
+    "tone": "^15.1.22",
+    "web-audio-beat-detector": "^8.2.27"
   }
 }
