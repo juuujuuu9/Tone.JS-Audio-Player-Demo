@@ -1,47 +1,90 @@
-# Astro Starter Kit: Minimal
+# TFC 88 - Audio Controller
 
-```sh
-npm create astro@latest -- --template minimal
-```
+A modern web-based audio controller built with Astro and Tone.js that allows users to manipulate and process audio files in real-time. This project provides a sleek, PlayStation and Akai MPC inspired interface for audio manipulation with various effects and controls.
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/withastro/astro/tree/latest/examples/minimal)
-[![Open with CodeSandbox](https://assets.codesandbox.io/github/button-edit-lime.svg)](https://codesandbox.io/p/sandbox/github/withastro/astro/tree/latest/examples/minimal)
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/withastro/astro?devcontainer_path=.devcontainer/minimal/devcontainer.json)
+## Features
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+- **Audio Upload & Playback**
+  - Drag and drop or click to upload audio files
+  - Support for multiple audio formats (MP3, WAV, M4A, AAC, OGG, WEBM)
+  - Pre-loaded sample tracks
+  - Basic playback controls (Play, Pause, Stop, Loop)
 
-## 🚀 Project Structure
+- **Real-time Audio Processing**
+  - Playback rate control with pitch adjustment
+  - BPM detection and display
+  - Multiple audio effects:
+    - Reverb with adjustable decay time
+    - Delay with configurable time and feedback
+    - Distortion with intensity control
+    - Pitch shifting with semitone adjustment
 
-Inside of your Astro project, you'll see the following folders and files:
+- **Mobile-Friendly Design**
+  - Responsive layout that works on both desktop and mobile devices
+  - Touch-optimized controls
+  - PlayStation-inspired UI with custom fonts and styling
 
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
-```
+## Technical Details
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+### Built With
+- [Astro](https://astro.build/) - Web framework
+- [Tone.js](https://tonejs.github.io/) - Web Audio framework
+- [web-audio-beat-detector](https://github.com/audiojs/web-audio-beat-detector) - BPM detection
+- Custom CSS with PlayStation-inspired design
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+### Audio Processing
+The application uses Tone.js for audio processing, providing:
+- Real-time audio manipulation
+- High-quality audio effects
+- Low-latency playback
+- Mobile-optimized audio context
 
-Any static assets, like images, can be placed in the `public/` directory.
+### UI Components
+- Nostalgic interface inspired by Playstation, Akai MPC and similar beat machines.
+- Custom fonts (Armygedon, Esportiva, Share Tech Mono)
+- Responsive design with mobile optimizations
+- Interactive sliders and buttons
+- Visual feedback for active effects
 
-## 🧞 Commands
+## Getting Started
 
-All commands are run from the root of the project, from a terminal:
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Run the development server:
+   ```bash
+   npm run dev
+   ```
+4. Open your browser to localhost
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+## Usage
 
-## 👀 Want to learn more?
+1. **Loading Audio**
+   - Click the upload area or drag and drop an audio file
+   - Use the "TRACKS" button to access pre-loaded samples
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+2. **Playback Controls**
+   - Use Play/Pause/Stop buttons for basic control
+   - Toggle Loop button for continuous playback
+   - Adjust playback rate using the slider
+
+3. **Effects**
+   - Toggle effects using their respective buttons
+   - Adjust effect parameters using the sliders that appear
+   - Combine multiple effects for complex sound manipulation
+
+## Browser Support
+- Chrome (recommended)
+- Firefox
+- Safari
+- Edge
+
+## Mobile Support
+- iOS Safari
+- Android Chrome
+- Other modern mobile browsers
+
+## Contributing
+Contributions are welcome! Please feel free to submit a Pull Request. 
