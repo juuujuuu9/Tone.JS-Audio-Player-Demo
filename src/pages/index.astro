@@ -431,8 +431,12 @@
 						// Import Tone.js dynamically
 						Tone = await import('tone');
 						
-						// Initialize Tone.js
+						// Initialize Tone.js with specific settings for mobile
 						await Tone.start();
+						Tone.setContext(new Tone.Context({
+							latencyHint: 'interactive',
+							lookAhead: 0.1
+						}));
 						
 						// Create effects
 						reverb = new Tone.Reverb().toDestination();
@@ -504,10 +508,10 @@
 							player.dispose();
 						}
 						
-						// Create new player
+						// Create new player with mobile-friendly settings
 						player = new Tone.Player({
 							url: url,
-							onload: () => {
+							onload: async () => {
 								console.log('Audio file loaded successfully');
 								// Update UI to show file is loaded
 								const uploadText = document.getElementById('uploadText');
@@ -519,6 +523,11 @@
 								if (playBtn) {
 									playBtn.classList.add('active');
 								}
+								
+								// Ensure audio context is running
+								if (Tone.context.state !== 'running') {
+									await Tone.start();
+								}
 							},
 							onerror: (error: Error) => {
 								console.error('Error loading audio file:', error);
@@ -529,10 +538,12 @@
 							}
 						}).toDestination();
 
-						// Ensure Tone.js is started
-						if (Tone.context.state !== 'running') {
-							await Tone.start();
-						}
+						// Set mobile-friendly buffer settings
+						player.buffer.set({
+							numberOfChannels: 2,
+							length: 0,
+							sampleRate: Tone.context.sampleRate
+						});
 					} catch (error) {
 						console.error('Error handling audio file:', error);
 						const uploadText = document.getElementById('uploadText');
@@ -550,21 +561,38 @@
 				const volumeSlider = document.getElementById('volumeSlider') as HTMLInputElement;
 				const playbackRateSlider = document.getElementById('playbackRateSlider') as HTMLInputElement;
 
-				playBtn?.addEventListener('click', () => {
+				playBtn?.addEventListener('click', async () => {
 					if (player) {
-						player.start();
+						try {
+							// Ensure audio context is running before playing
+							if (Tone.context.state !== 'running') {
+								await Tone.start();
+							}
+							await player.start();
+						} catch (error) {
+							console.error('Error starting playback:', error);
+						}
 					}
 				});
 
-				pauseBtn?.addEventListener('click', () => {
+				pauseBtn?.addEventListener('click', async () => {
 					if (player) {
-						player.stop();
+						try {
+							await player.stop();
+						} catch (error) {
+							console.error('Error stopping playback:', error);
+						}
 					}
 				});
 
-				stopBtn?.addEventListener('click', () => {
+				stopBtn?.addEventListener('click', async () => {
 					if (player) {
-						player.stop();
+						try {
+							await player.stop();
+							player.seek(0);
+						} catch (error) {
+							console.error('Error stopping playback:', error);
+						}
 					}
 				});
 
