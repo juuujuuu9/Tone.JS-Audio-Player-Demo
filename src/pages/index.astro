@@ -444,35 +444,27 @@
 					<button class="btn effect-btn" id="reverbBtn">Reverb</button>
 					<div class="effect-controls" id="reverbControls" style="display: none;">
 						<div class="slider-label"><span>Decay Time</span></div>
-						<input type="range" class="slider" id="reverbDecaySlider" min="0.1" max="10" value="1.5" step="0.1" />
+						<input type="range" class="slider" id="reverbDecaySlider" min="0.1" max="20" value="3" step="0.1" />
 					</div>
 
 					<button class="btn effect-btn" id="delayBtn">Delay</button>
 					<div class="effect-controls" id="delayControls" style="display: none;">
 						<div class="slider-label"><span>Delay Time</span></div>
-						<input type="range" class="slider" id="delayTimeSlider" min="0.1" max="2" value="0.25" step="0.1" />
+						<input type="range" class="slider" id="delayTimeSlider" min="0.1" max="4" value="0.5" step="0.1" />
 						<div class="slider-label"><span>Feedback</span></div>
-						<input type="range" class="slider" id="delayFeedbackSlider" min="0" max="0.9" value="0.5" step="0.1" />
+						<input type="range" class="slider" id="delayFeedbackSlider" min="0" max="0.95" value="0.6" step="0.05" />
 					</div>
 
 					<button class="btn effect-btn" id="distortionBtn">Distort</button>
 					<div class="effect-controls" id="distortionControls" style="display: none;">
 						<div class="slider-label"><span>Distortion</span></div>
-						<input type="range" class="slider" id="distortionSlider" min="0" max="1" value="0.4" step="0.1" />
-					</div>
-
-					<button class="btn effect-btn" id="filterBtn">Filter</button>
-					<div class="effect-controls" id="filterControls" style="display: none;">
-						<div class="slider-label"><span>Frequency</span></div>
-						<input type="range" class="slider" id="filterFreqSlider" min="20" max="20000" value="1000" step="1" />
-						<div class="slider-label"><span>Q</span></div>
-						<input type="range" class="slider" id="filterQSlider" min="0.1" max="20" value="1" step="0.1" />
+						<input type="range" class="slider" id="distortionSlider" min="0" max="1" value="0.6" step="0.05" />
 					</div>
 
 					<button class="btn effect-btn" id="pitchShiftBtn">Pitch</button>
 					<div class="effect-controls" id="pitchShiftControls" style="display: none;">
 						<div class="slider-label"><span>Pitch</span></div>
-						<input type="range" class="slider" id="pitchShiftSlider" min="-12" max="12" value="0" step="1" />
+						<input type="range" class="slider" id="pitchShiftSlider" min="-24" max="24" value="0" step="1" />
 					</div>
 				</div>
 			</div>
@@ -486,14 +478,12 @@
 				let reverb: any;
 				let delay: any;
 				let distortion: any;
-				let filter: any;
 				let pitchShift: any;
 				let isInitialized = false;
 
 				let isReverbOn = false;
 				let isDelayOn = false;
 				let isDistortionOn = false;
-				let isFilterOn = false;
 				let isPitchShiftOn = false;
 
 				let detectedBpm: number | null = null;
@@ -535,11 +525,24 @@
 						}));
 						
 						// Create effects
-						reverb = new Tone.Reverb().toDestination();
-						delay = new Tone.FeedbackDelay().toDestination();
-						distortion = new Tone.Distortion().toDestination();
-						filter = new Tone.Filter().toDestination();
-						pitchShift = new Tone.PitchShift().toDestination();
+						reverb = new Tone.Reverb({
+							decay: 3,
+							preDelay: 0.1,
+							wet: 0.8
+						}).toDestination();
+						delay = new Tone.FeedbackDelay({
+							delayTime: 0.5,
+							feedback: 0.6,
+							wet: 0.8
+						}).toDestination();
+						distortion = new Tone.Distortion({
+							distortion: 0.6,
+							wet: 0.8
+						}).toDestination();
+						pitchShift = new Tone.PitchShift({
+							pitch: 0,
+							wet: 0.8
+						}).toDestination();
 						
 						isInitialized = true;
 						console.log('Audio initialized successfully');
@@ -739,8 +742,6 @@
 				const delayControls = document.getElementById('delayControls');
 				const distortionBtn = document.getElementById('distortionBtn');
 				const distortionControls = document.getElementById('distortionControls');
-				const filterBtn = document.getElementById('filterBtn');
-				const filterControls = document.getElementById('filterControls');
 				const pitchShiftBtn = document.getElementById('pitchShiftBtn');
 				const pitchShiftControls = document.getElementById('pitchShiftControls');
 
@@ -789,21 +790,6 @@
 					}
 				});
 
-				filterBtn?.addEventListener('click', () => {
-					if (player) {
-						isFilterOn = !isFilterOn;
-						if (isFilterOn) {
-							player.connect(filter);
-							filterBtn.classList.add('active');
-							if (filterControls) filterControls.style.display = 'block';
-						} else {
-							player.disconnect(filter);
-							filterBtn.classList.remove('active');
-							if (filterControls) filterControls.style.display = 'none';
-						}
-					}
-				});
-
 				pitchShiftBtn?.addEventListener('click', () => {
 					if (player) {
 						isPitchShiftOn = !isPitchShiftOn;
@@ -824,8 +810,6 @@
 				const delayTimeSlider = document.getElementById('delayTimeSlider') as HTMLInputElement;
 				const delayFeedbackSlider = document.getElementById('delayFeedbackSlider') as HTMLInputElement;
 				const distortionSlider = document.getElementById('distortionSlider') as HTMLInputElement;
-				const filterFreqSlider = document.getElementById('filterFreqSlider') as HTMLInputElement;
-				const filterQSlider = document.getElementById('filterQSlider') as HTMLInputElement;
 				const pitchShiftSlider = document.getElementById('pitchShiftSlider') as HTMLInputElement;
 
 				if (reverbDecaySlider) {
@@ -853,20 +837,6 @@
 					distortionSlider.addEventListener('input', (e: Event) => {
 						const target = e.target as HTMLInputElement;
 						distortion.distortion = parseFloat(target.value);
-					});
-				}
-
-				if (filterFreqSlider) {
-					filterFreqSlider.addEventListener('input', (e: Event) => {
-						const target = e.target as HTMLInputElement;
-						filter.frequency.value = parseFloat(target.value);
-					});
-				}
-
-				if (filterQSlider) {
-					filterQSlider.addEventListener('input', (e: Event) => {
-						const target = e.target as HTMLInputElement;
-						filter.Q.value = parseFloat(target.value);
 					});
 				}
 
