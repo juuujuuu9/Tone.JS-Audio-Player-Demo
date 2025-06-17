@@ -681,11 +681,14 @@
 				let audioContext: AudioContext | null = null;
 
 				async function checkIOSAudioState() {
+					console.log('Checking iOS audio state...');
 					if (isIOS) {
+						console.log('iOS device detected');
 						try {
 							// Create a temporary audio context to check if we can play audio
 							if (!audioContext) {
 								audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+								console.log('Audio context created');
 							}
 							
 							// Create a silent buffer
@@ -696,6 +699,7 @@
 							
 							// Try to play the silent buffer
 							source.start(0);
+							console.log('Silent buffer played successfully');
 							
 							// If we get here, audio is working
 							const uploadText = document.getElementById('uploadText');
@@ -704,6 +708,7 @@
 							}
 							return true;
 						} catch (error) {
+							console.log('Audio check failed:', error);
 							// If we get an error, the device is likely muted
 							const uploadText = document.getElementById('uploadText');
 							if (uploadText) {
@@ -711,13 +716,26 @@
 							}
 							return false;
 						}
+					} else {
+						console.log('Not an iOS device');
 					}
 					return true;
 				}
 
 				// Add touch event listener to check audio state on first interaction
 				document.addEventListener('touchstart', async () => {
+					console.log('Touch event detected');
 					if (isIOS) {
+						console.log('iOS touch detected, checking audio state');
+						await checkIOSAudioState();
+					}
+				}, { once: true });
+
+				// Also check on any click event
+				document.addEventListener('click', async () => {
+					console.log('Click event detected');
+					if (isIOS) {
+						console.log('iOS click detected, checking audio state');
 						await checkIOSAudioState();
 					}
 				}, { once: true });
@@ -875,8 +893,15 @@
 					if (isInitialized) return;
 					
 					try {
+						console.log('Initializing audio...');
 						// Import Tone.js dynamically
 						Tone = await import('tone');
+						
+						// Check iOS audio state before proceeding
+						if (isIOS) {
+							console.log('Checking iOS audio state during initialization');
+							await checkIOSAudioState();
+						}
 						
 						// Initialize Tone.js with specific settings for mobile
 						await Tone.start();
