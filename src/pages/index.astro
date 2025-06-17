@@ -685,21 +685,20 @@
 					if (isIOS) {
 						console.log('iOS device detected');
 						try {
-							// Create a temporary audio context to check if we can play audio
-							if (!audioContext) {
-								audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-								console.log('Audio context created');
-							}
+							// Try to get audio input to check if device is muted
+							const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+							const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+							const analyser = audioContext.createAnalyser();
+							const source = audioContext.createMediaStreamSource(stream);
+							source.connect(analyser);
 							
-							// Create a silent buffer
-							const buffer = audioContext.createBuffer(1, 1, 22050);
-							const source = audioContext.createBufferSource();
-							source.buffer = buffer;
-							source.connect(audioContext.destination);
+							// Check if we can get audio data
+							const dataArray = new Uint8Array(analyser.frequencyBinCount);
+							analyser.getByteFrequencyData(dataArray);
 							
-							// Try to play the silent buffer
-							source.start(0);
-							console.log('Silent buffer played successfully');
+							// Stop the stream
+							stream.getTracks().forEach(track => track.stop());
+							audioContext.close();
 							
 							// If we get here, audio is working
 							const uploadText = document.getElementById('uploadText');
