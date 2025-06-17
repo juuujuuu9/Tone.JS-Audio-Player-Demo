@@ -679,39 +679,71 @@
 				// iOS audio handling
 				const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
 				let audioContext: AudioContext | null = null;
+				let isDeviceMuted = false;
 
 				async function checkIOSAudioState() {
 					console.log('Checking iOS audio state...');
 					if (isIOS) {
 						console.log('iOS device detected');
 						try {
-							// Try to get audio input to check if device is muted
-							const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-							const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-							const analyser = audioContext.createAnalyser();
-							const source = audioContext.createMediaStreamSource(stream);
-							source.connect(analyser);
+							// Create a temporary audio context
+							const tempContext = new (window.AudioContext || (window as any).webkitAudioContext)();
 							
-							// Check if we can get audio data
+							// Create an oscillator to test audio output
+							const oscillator = tempContext.createOscillator();
+							const gainNode = tempContext.createGain();
+							gainNode.gain.value = 0.1; // Low volume to avoid startling the user
+							
+							// Create an analyser to check if sound is actually playing
+							const analyser = tempContext.createAnalyser();
+							analyser.fftSize = 2048;
+							
+							// Connect the nodes
+							oscillator.connect(gainNode);
+							gainNode.connect(analyser);
+							analyser.connect(tempContext.destination);
+							
+							// Start the oscillator
+							oscillator.start();
+							
+							// Wait a short time to let the audio start
+							await new Promise(resolve => setTimeout(resolve, 100));
+							
+							// Check if we can detect any audio output
 							const dataArray = new Uint8Array(analyser.frequencyBinCount);
 							analyser.getByteFrequencyData(dataArray);
 							
-							// Stop the stream
-							stream.getTracks().forEach(track => track.stop());
-							audioContext.close();
+							// Stop the oscillator
+							oscillator.stop();
+							tempContext.close();
 							
-							// If we get here, audio is working
-							const uploadText = document.getElementById('uploadText');
-							if (uploadText) {
-								uploadText.textContent = 'IMPORT audio or select from TRACKS below';
+							// Check if we got any non-zero values in the frequency data
+							const hasAudio = dataArray.some(value => value > 0);
+							
+							if (hasAudio) {
+								console.log('Audio output detected - device is not muted');
+								isDeviceMuted = false;
+								const uploadText = document.getElementById('uploadText');
+								if (uploadText) {
+									uploadText.textContent = 'IMPORT audio or select from TRACKS below';
+								}
+							} else {
+								console.log('No audio output detected - device is muted');
+								isDeviceMuted = true;
+								const uploadText = document.getElementById('uploadText');
+								if (uploadText) {
+									uploadText.textContent = '⚠️ Device is in silent mode. Please unmute to play audio.';
+								}
 							}
-							return true;
+							
+							return !isDeviceMuted;
 						} catch (error) {
 							console.log('Audio check failed:', error);
-							// If we get an error, the device is likely muted
+							// If we get an error, assume the device is muted
+							isDeviceMuted = true;
 							const uploadText = document.getElementById('uploadText');
 							if (uploadText) {
-								uploadText.textContent = '⚠️ Device is muted. Please unmute to play audio.';
+								uploadText.textContent = '⚠️ Device is in silent mode. Please unmute to play audio.';
 							}
 							return false;
 						}
@@ -1038,8 +1070,12 @@
 				playBtn?.addEventListener('click', async () => {
 					if (player) {
 						try {
-							// Check iOS audio state before playing
-							if (isIOS && !(await checkIOSAudioState())) {
+							// Check if device is muted before playing
+							if (isIOS && isDeviceMuted) {
+								const uploadText = document.getElementById('uploadText');
+								if (uploadText) {
+									uploadText.textContent = '⚠️ Device is muted. Please unmute to play audio.';
+								}
 								return;
 							}
 
