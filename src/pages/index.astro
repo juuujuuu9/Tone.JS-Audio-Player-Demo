@@ -676,6 +676,52 @@
 				let playbackStartTimestamp = 0;
 				let offsetAtStart = 0;
 
+				// iOS audio handling
+				const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+				let audioContext: AudioContext | null = null;
+
+				async function checkIOSAudioState() {
+					if (isIOS) {
+						try {
+							// Create a temporary audio context to check if we can play audio
+							if (!audioContext) {
+								audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+							}
+							
+							// Create a silent buffer
+							const buffer = audioContext.createBuffer(1, 1, 22050);
+							const source = audioContext.createBufferSource();
+							source.buffer = buffer;
+							source.connect(audioContext.destination);
+							
+							// Try to play the silent buffer
+							source.start(0);
+							
+							// If we get here, audio is working
+							const uploadText = document.getElementById('uploadText');
+							if (uploadText) {
+								uploadText.textContent = 'IMPORT audio or select from TRACKS below';
+							}
+							return true;
+						} catch (error) {
+							// If we get an error, the device is likely muted
+							const uploadText = document.getElementById('uploadText');
+							if (uploadText) {
+								uploadText.textContent = '⚠️ Device is muted. Please unmute to play audio.';
+							}
+							return false;
+						}
+					}
+					return true;
+				}
+
+				// Add touch event listener to check audio state on first interaction
+				document.addEventListener('touchstart', async () => {
+					if (isIOS) {
+						await checkIOSAudioState();
+					}
+				}, { once: true });
+
 				function formatTime(seconds: number): string {
 					const minutes = Math.floor(seconds / 60);
 					const remainingSeconds = Math.floor(seconds % 60);
@@ -968,6 +1014,11 @@
 				playBtn?.addEventListener('click', async () => {
 					if (player) {
 						try {
+							// Check iOS audio state before playing
+							if (isIOS && !(await checkIOSAudioState())) {
+								return;
+							}
+
 							if (Tone.context.state !== 'running') await Tone.start();
 							if (isPaused) {
 								await player.start();
